@@ -42,12 +42,13 @@
          {:doc     "Run full quality assurance: format, lint, and test"
           :depends [fmt lint test]}
 
-         ci
-         {:doc     "Run CI checks: test, format check, and lint"
-          :depends [test fmt:check lint]}
-
          nix:lock  {:doc "Lock deps.edn for the nix package"
                     :task (shell "nix run github:jlesquembre/clj-nix#deps-lock")}
 
          build {:doc  "Build the native image"
-                       :task (shell "nix build .#packages.x86_64-linux.default") }}}
+                       :task (shell "nix build .#packages.x86_64-linux.default") }
+
+
+         ci
+         {:doc     "Run CI checks: test, format check, and lint"
+          :depends [test fmt:check lint build]}}}

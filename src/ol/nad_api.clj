@@ -1,13 +1,16 @@
 (ns ol.nad-api
   (:require
    [aero.core :as aero]
-   [ol.nad-api.web :as web]
-   [ol.nad-api.telnet :as telnet]
-   [ring.middleware.defaults
-    :refer [wrap-defaults api-defaults]]
+   [clojure.java.io :as io]
    [donut.system :as ds]
-   [org.httpkit.server :as http])
-  (:import [java.util.concurrent Executors])
+   [ol.nad-api.telnet :as telnet]
+   [ol.nad-api.web :as web]
+   [org.httpkit.server :as http]
+   [ring.middleware.defaults
+    :refer [api-defaults wrap-defaults]])
+  (:import
+   [java.io File]
+   [java.util.concurrent Executors])
   (:gen-class))
 
 (set! *warn-on-reflection* true)
@@ -88,8 +91,68 @@
 (defn stop []
   (reset! system_ (ds/stop @system_)))
 
-(defn -main [& _args]
-  (start (read-env "config.edn")))
+(defn parse-args
+  "Parses command line arguments for --config-file option.
+
+  ```clojure
+  (parse-args [\"--config-file\" \"/path/to/config.edn\"])
+  ;=> {:config-file \"/path/to/config.edn\"}
+
+  (parse-args [])
+  ;=> {}
+  ```"
+  [args]
+  (loop [args args
+         opts {}]
+    (if (empty? args)
+      opts
+      (let [[arg & rest-args] args]
+        (if (= arg "--config-file")
+          (recur (rest rest-args) (assoc opts :config-file (first rest-args)))
+          (recur rest-args opts))))))
+
+(defn xdg-config-home
+  "Returns XDG_CONFIG_HOME or ~/.config as fallback."
+  []
+  (or (System/getenv "XDG_CONFIG_HOME")
+      (str (System/getProperty "user.home") File/separator ".config")))
+
+(defn- configuration-directory
+  "Returns $CONFIGURATION_DIRECTORY if set (systemd), nil otherwise."
+  []
+  (System/getenv "CONFIGURATION_DIRECTORY"))
+
+(defn find-config-file
+  "Finds config file in order of precedence:
+
+  1. `:config-file` in opts (from --config-file argument)
+  2. ./config.edn
+  3. $CONFIGURATION_DIRECTORY/config.edn (systemd ConfigurationDirectory)
+  4. $XDG_CONFIG_HOME/nad-api/config.edn (or ~/.config/nad-api/config.edn)
+
+  Throws if no config file is found.
+
+  ```clojure
+  (find-config-file {:config-file \"/path/to/config.edn\"})
+  ;=> \"/path/to/config.edn\"
+  ```"
+  [opts]
+  (let [candidates (remove nil?
+                           [(:config-file opts)
+                            "config.edn"
+                            (when-let [conf-dir (configuration-directory)]
+                              (str conf-dir File/separator "config.edn"))
+                            (str (xdg-config-home) File/separator "nad-api" File/separator "config.edn")])]
+    (or (first (filter #(.exists (io/file %)) candidates))
+        (throw (ex-info "No config file found"
+                        {:searched candidates
+                         :hint     "Create config.edn or use --config-file <path>"})))))
+
+(defn -main [& args]
+  (let [opts        (parse-args args)
+        config-file (find-config-file opts)]
+    (println "Using config:" config-file)
+    (start (read-env config-file))))
 
 (comment
   (start (read-env "config.edn"))

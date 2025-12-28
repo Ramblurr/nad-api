@@ -20,9 +20,9 @@
         devshell.overlays.default
         devenv.overlays.default
       ];
-      packages = {
+      packages = rec {
         graalvm-ce = pkgs: pkgs.graalvmPackages.graalvm-ce;
-        default =
+        nad-api =
           pkgs:
           clj-nix.lib.mkCljApp {
             inherit pkgs;
@@ -36,7 +36,9 @@
               }
             ];
           };
+        default = nad-api;
       };
+      nixosModule = ./module.nix;
 
       devShell =
         pkgs:
