@@ -14,7 +14,7 @@
   (ring/ring-handler
    (ring/router
     [["/"
-      {:get (fn [request]
+      {:get (fn [_request]
               (-> "Hello world"
                   (response/response)
                   (response/header "content-type" "text/html")))}]])))
@@ -42,7 +42,7 @@
 
 (defn stop []
   (reset! system_ (ds/stop @system_)))
-(defn -main [& args])
+(defn -main [& _args])
 
 (comment
   (start)

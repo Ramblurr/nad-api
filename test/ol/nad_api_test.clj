@@ -1,7 +1,7 @@
 (ns ol.nad-api-test
   (:require
    [ol.nad-api :as sut]
-   [clojure.test :refer [deftest is testing]]))
+   [clojure.test :refer [deftest is]]))
 
 (deftest handler-test
   (is (=
