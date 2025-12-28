@@ -194,12 +194,16 @@
   ;=> {:socket #<Socket> :host \"10.0.0.1\" :port 23 :timeout-ms 2000 :model \"T778\"}
   ```"
   [host port timeout-ms]
-  (let [socket           (sockets/connect host port timeout-ms)
-        conn             {:socket socket :host host :port port :timeout-ms timeout-ms}
-        ;; NAD sends model on connect
-        initial-response (read-response conn)
-        model            (parse-response initial-response)]
-    (assoc conn :model model)))
+  (let [socket (sockets/connect host port timeout-ms)]
+    (try
+      (let [conn             {:socket socket :host host :port port :timeout-ms timeout-ms}
+            ;; NAD sends model on connect
+            initial-response (read-response conn)
+            model            (parse-response initial-response)]
+        (assoc conn :model model))
+      (catch Throwable t
+        (sockets/close socket)
+        (throw t)))))
 
 (defn- read-all-available
   "Reads all available responses from the connection.
@@ -227,17 +231,23 @@
   Returns the connection with `:supported-commands` added - a set of
   command names that the device supports.
 
+  On failure, closes the socket and rethrows the exception.
+
   ```clojure
   (-> (connect \"10.0.0.1\" 23 2000)
       (introspect))
   ;=> {:socket ... :model \"T778\" :supported-commands #{\"Main.Power\" ...}}
   ```"
   [{:keys [socket] :as conn}]
-  ;; Use a shorter timeout for introspection reads since we need to detect end
-  (sockets/write socket (wrap-command "?"))
-  (let [response  (read-all-available conn 500)
-        supported (parse-introspection-response response)]
-    (assoc conn :supported-commands supported)))
+  (try
+    ;; Use a shorter timeout for introspection reads since we need to detect end
+    (sockets/write socket (wrap-command "?"))
+    (let [response  (read-all-available conn 500)
+          supported (parse-introspection-response response)]
+      (assoc conn :supported-commands supported))
+    (catch Throwable t
+      (sockets/close socket)
+      (throw t))))
 
 (defn reconnect
   "Disconnects and reconnects to the NAD receiver.
