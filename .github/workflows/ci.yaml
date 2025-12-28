@@ -3,18 +3,28 @@
 name: CI
 on:
   push:
+    branches: [main]
   pull_request:
+    branches: [main]
+  workflow_dispatch:
 jobs:
   build-clojure:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
     steps:
-      - uses: actions/checkout@v5
-      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: actions/checkout@v6
+      - uses: DeterminateSystems/determinate-nix-action@v3
+      - uses: DeterminateSystems/flakehub-cache-action@v3
+      - uses: DeterminateSystems/flake-checker-action@v12
+      - run: nix flake check
+      - run: nix develop --command -- bb ci
+      - uses: DeterminateSystems/flakehub-push@main
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        id: flakehub-push
         with:
-          determinate: true
-      - uses: DeterminateSystems/flakehub-cache-action@main
-      - uses: DeterminateSystems/flake-checker-action@main
-      - name: Run flake check
-        run: nix flake check
-      - name: Verify & build
-        run: nix develop --command -- bb ci
+          name: ramblurr/nad-api
+          rolling: true
+          visibility: public
+          include-output-paths: true
