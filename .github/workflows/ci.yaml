@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+---
+name: CI
+on:
+  push:
+  pull_request:
+jobs:
+  build-clojure:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: DeterminateSystems/nix-installer-action@main
+        with:
+          determinate: true
+      - uses: DeterminateSystems/flakehub-cache-action@main
+      - uses: DeterminateSystems/flake-checker-action@main
+      - name: Run flake check
+        run: nix flake check
+      - name: Verify & build
+        run: nix develop --command -- bb ci
