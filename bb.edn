@@ -49,15 +49,5 @@
          nix:lock  {:doc "Lock deps.edn for the nix package"
                     :task (shell "nix run github:jlesquembre/clj-nix#deps-lock")}
 
-         jar     {:override-builtin true
-                  :depends          [clean]
-                  :doc              "Build an jar"
-                  :task             (shell "clojure -T:build jar")}
-
-         clean   {:override-builtin true
-                  :doc              "Clean build artifacts"
-                  :task             (shell "clojure -T:build clean")}
-
-         publish {:doc     "Publish the clojure sdk libs to clojars"
-                  :depends [jar]
-                  :task    (clojure "-T:build deploy")}}}
+         build {:doc  "Build the native image"
+                       :task (shell "nix build .#packages.x86_64-linux.default") }}}

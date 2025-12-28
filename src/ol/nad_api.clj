@@ -1,71 +1,98 @@
 (ns ol.nad-api
   (:require
+   [aero.core :as aero]
    [ol.nad-api.web :as web]
    [ol.nad-api.telnet :as telnet]
-   [ring.util.response :as response]
    [ring.middleware.defaults
     :refer [wrap-defaults api-defaults]]
    [donut.system :as ds]
-   [org.httpkit.server :as http]
-   [reitit.ring :as ring])
+   [org.httpkit.server :as http])
+  (:import [java.util.concurrent Executors])
   (:gen-class))
 
 (set! *warn-on-reflection* true)
 
-(def handler
-  (ring/ring-handler
-   (ring/router
-    [["/"
-      {:get (fn [_request]
-              (-> "Hello world"
-                  (response/response)
-                  (response/header "content-type" "text/html")))}]])))
+(defn- make-device-component
+  "Creates a donut.system component definition for a NAD device.
 
-(def system
-  {::ds/defs
-   {:env {:nad {:host "10.9.4.12"}}
-    :app {:nad         #::ds{:config {:host       (ds/ref [:env :nad :host])
-                                      :port       23
-                                      :timeout-ms 2000}
-                             :start  (fn [{::ds/keys [config]}]
-                                       (let [{:keys [host port timeout-ms]} config]
-                                         (-> (telnet/connect host port timeout-ms)
-                                             (telnet/introspect))))
-                             :stop   (fn [{:keys [::ds/instance]}]
-                                       (when instance
-                                         (telnet/disconnect instance)))}
-          :nad-handler #::ds {:config {:nad (ds/local-ref [:nad])}
-                              :start  (fn [{::ds/keys [config]}]
-                                        (web/handler (:nad config)))}
-          :http        #::ds{:config {:port        8002
-                                      :nad-handler (ds/local-ref [:nad-handler])}
-                             :start  (fn [{::ds/keys [config]}]
-                                       (let [{:keys [port nad-handler]} config]
-                                         (println "Listening on " port)
-                                         (http/run-server
-                                          (wrap-defaults
-                                           nad-handler
-                                           (assoc api-defaults :static {:resources "public"}))
-                                          {:port                       port
-                                           :legacy-content-length?     false
-                                           :legacy-unsafe-remote-addr? false})))
-                             :stop   (fn [{:keys [::ds/instance]}]
-                                       (when instance (instance :timeout 100)))}}}})
+  Returns an atom containing the connection to support reconnection."
+  [device-config]
+  #::ds{:config {:host       (:host device-config)
+                 :port       (or (:port device-config) 23)
+                 :timeout-ms (or (:timeout-ms device-config) 2000)}
+        :start  (fn [{::ds/keys [config]}]
+                  (let [{:keys [host port timeout-ms]} config
+                        conn                           (-> (telnet/connect host port timeout-ms)
+                                                           (telnet/introspect))]
+                    (atom conn)))
+        :stop   (fn [{:keys [::ds/instance]}]
+                  (when instance
+                    (telnet/disconnect @instance)))})
+
+(defn- device-ref
+  "Creates a local ref to a device component by name."
+  [device-name]
+  (ds/local-ref [(keyword device-name)]))
+
+(defn system
+  "Creates the donut.system definition.
+
+  Dynamically creates device components based on `:nad-devices` in env config."
+  [env]
+  (let [nad-devices       (:nad-devices env)
+        ;; Create device components: {:nad-t778 #::ds{...}, :nad-t787 #::ds{...}}
+        device-components (into {}
+                                (map (fn [{:keys [name] :as device-config}]
+                                       [(keyword name)
+                                        (make-device-component device-config)]))
+                                nad-devices)
+        ;; Create refs to all device components for the handler
+        device-refs       (into {}
+                                (map (fn [{:keys [name]}]
+                                       [name (device-ref name)]))
+                                nad-devices)]
+    {::ds/defs
+     {:env env
+      :app (merge
+            device-components
+            {:nad-handler #::ds{:config {:devices device-refs}
+                                :start  (fn [{::ds/keys [config]}]
+                                          (web/handler (:devices config)))}
+             :http        #::ds{:config {:http        (ds/ref [:env :http])
+                                         :nad-handler (ds/local-ref [:nad-handler])}
+                                :start  (fn [{::ds/keys [config]}]
+                                          (let [{:keys [nad-handler]} config
+                                                port                  (-> config :http :port)
+                                                opts                  (merge
+                                                                       {:worker-pool                (Executors/newVirtualThreadPerTaskExecutor)
+                                                                        :legacy-return-value?       false
+                                                                        :legacy-content-length?     false
+                                                                        :legacy-unsafe-remote-addr? false}
+                                                                       (:http config))]
+                                            (println "Listening on" port)
+                                            (http/run-server
+                                             (wrap-defaults nad-handler (assoc api-defaults :static {:resources "public"}))
+                                             opts)))
+                                :stop   (fn [{:keys [::ds/instance]}]
+                                          (when instance
+                                            (http/server-stop! instance {:timeout 100})))}})}}))
+
+(defn read-env [f]
+  (aero/read-config f))
 
 (def system_ (atom nil))
 
-(defn start []
-  (reset! system_ (ds/start system)))
+(defn start [env]
+  (reset! system_ (ds/start (system env))))
 
 (defn stop []
   (reset! system_ (ds/stop @system_)))
 
 (defn -main [& _args]
-  (start))
+  (start (read-env "config.edn")))
 
 (comment
-  (start)
+  (start (read-env "config.edn"))
   (stop)
-  (handler {:uri "/" :request-method :get})
   ;;
   )

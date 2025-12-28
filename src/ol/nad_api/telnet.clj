@@ -12,6 +12,8 @@
   (:import
    [java.net Socket]))
 
+(set! *warn-on-reflection* true)
+
 (def default-config
   "Default telnet connection configuration."
   {:host       nil
@@ -180,6 +182,8 @@
 
   Returns a connection map with:
   - `:socket` - The underlying socket
+  - `:host` - The device hostname/IP
+  - `:port` - The device port
   - `:timeout-ms` - Read timeout
   - `:model` - The device model (read on connect)
 
@@ -187,11 +191,11 @@
 
   ```clojure
   (connect \"10.0.0.1\" 23 2000)
-  ;=> {:socket #<Socket> :timeout-ms 2000 :model \"T778\"}
+  ;=> {:socket #<Socket> :host \"10.0.0.1\" :port 23 :timeout-ms 2000 :model \"T778\"}
   ```"
   [host port timeout-ms]
   (let [socket           (sockets/connect host port timeout-ms)
-        conn             {:socket socket :timeout-ms timeout-ms}
+        conn             {:socket socket :host host :port port :timeout-ms timeout-ms}
         ;; NAD sends model on connect
         initial-response (read-response conn)
         model            (parse-response initial-response)]
@@ -235,6 +239,23 @@
         supported (parse-introspection-response response)]
     (assoc conn :supported-commands supported)))
 
+(defn reconnect
+  "Disconnects and reconnects to the NAD receiver.
+
+  Closes the existing socket and creates a new connection using the
+  stored host, port, and timeout configuration. Re-introspects the device.
+
+  Returns a new connection map with fresh socket and updated model/commands.
+
+  ```clojure
+  (reconnect conn)
+  ;=> {:socket #<Socket> :host \"10.0.0.1\" :port 23 ...}
+  ```"
+  [{:keys [host port timeout-ms] :as conn}]
+  (disconnect conn)
+  (-> (connect host port timeout-ms)
+      (introspect)))
+
 (defn- validate-command!
   "Validates that a command is supported (if introspection data is present).
 
@@ -244,8 +265,8 @@
     (let [cmd-name (parse-command cmd)]
       (when-not (contains? supported-commands cmd-name)
         (throw (ex-info (str "Command '" cmd-name "' is not supported by this device")
-                        {:command cmd
-                         :command-name cmd-name
+                        {:command            cmd
+                         :command-name       cmd-name
                          :supported-commands supported-commands}))))))
 
 (def ^:private default-read-timeout-ms

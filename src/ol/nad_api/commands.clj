@@ -8,6 +8,8 @@
   - `:example` - Example usage from the protocol spec
   - `:values` - Optional: possible values or range specification")
 
+(set! *warn-on-reflection* true)
+
 (def ^{:doc "Registry of NAD receiver commands.
 
   Structure:

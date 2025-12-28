@@ -190,17 +190,17 @@
   (testing "GET request returns current device state"
     (let [conn    (-> (telnet/connect "localhost" *mock-port* 2000)
                       (telnet/introspect))
-          handler (web/handler conn)]
+          handler (web/handler {"nad-t778" conn})]
       (try
         ;; Query power
-        (let [response (handler {:uri "/api/Main.Power" :request-method :get})
+        (let [response (handler {:uri "/api/nad-t778/Main.Power" :request-method :get})
               body     (json/read-json (:body response) :key-fn keyword)]
           (is (= 200 (:status response)))
           (is (= "Main.Power" (:command body)))
           (is (= "Off" (:value body))))
 
         ;; Query volume
-        (let [response (handler {:uri "/api/Main.Volume" :request-method :get})
+        (let [response (handler {:uri "/api/nad-t778/Main.Volume" :request-method :get})
               body     (json/read-json (:body response) :key-fn keyword)]
           (is (= 200 (:status response)))
           (is (= "Main.Volume" (:command body)))
@@ -212,27 +212,27 @@
   (testing "POST request changes device power state"
     (let [conn    (-> (telnet/connect "localhost" *mock-port* 2000)
                       (telnet/introspect))
-          handler (web/handler conn)]
+          handler (web/handler {"nad-t778" conn})]
       (try
         ;; Turn power on
-        (let [body     (json/write-json-str {:operator "=" :value "On"})
-              response (handler {:uri            "/api/Main.Power"
-                                 :request-method :post
-                                 :body           (java.io.StringReader. body)})
+        (let [body      (json/write-json-str {:operator "=" :value "On"})
+              response  (handler {:uri            "/api/nad-t778/Main.Power"
+                                  :request-method :post
+                                  :body           (java.io.StringReader. body)})
               resp-body (json/read-json (:body response) :key-fn keyword)]
           (is (= 200 (:status response)))
           (is (= "On" (:value resp-body))))
 
         ;; Verify state changed
-        (let [response (handler {:uri "/api/Main.Power" :request-method :get})
+        (let [response (handler {:uri "/api/nad-t778/Main.Power" :request-method :get})
               body     (json/read-json (:body response) :key-fn keyword)]
           (is (= "On" (:value body))))
 
         ;; Turn power off
-        (let [body     (json/write-json-str {:operator "=" :value "Off"})
-              response (handler {:uri            "/api/Main.Power"
-                                 :request-method :post
-                                 :body           (java.io.StringReader. body)})
+        (let [body      (json/write-json-str {:operator "=" :value "Off"})
+              response  (handler {:uri            "/api/nad-t778/Main.Power"
+                                  :request-method :post
+                                  :body           (java.io.StringReader. body)})
               resp-body (json/read-json (:body response) :key-fn keyword)]
           (is (= 200 (:status response)))
           (is (= "Off" (:value resp-body))))
@@ -243,31 +243,31 @@
   (testing "volume can be set, incremented, and decremented"
     (let [conn    (-> (telnet/connect "localhost" *mock-port* 2000)
                       (telnet/introspect))
-          handler (web/handler conn)]
+          handler (web/handler {"nad-t778" conn})]
       (try
         ;; Set volume to -30
-        (let [body     (json/write-json-str {:operator "=" :value "-30"})
-              response (handler {:uri            "/api/Main.Volume"
-                                 :request-method :post
-                                 :body           (java.io.StringReader. body)})
+        (let [body      (json/write-json-str {:operator "=" :value "-30"})
+              response  (handler {:uri            "/api/nad-t778/Main.Volume"
+                                  :request-method :post
+                                  :body           (java.io.StringReader. body)})
               resp-body (json/read-json (:body response) :key-fn keyword)]
           (is (= 200 (:status response)))
           (is (= "-30" (:value resp-body))))
 
         ;; Increment volume
-        (let [body     (json/write-json-str {:operator "+"})
-              response (handler {:uri            "/api/Main.Volume"
-                                 :request-method :post
-                                 :body           (java.io.StringReader. body)})
+        (let [body      (json/write-json-str {:operator "+"})
+              response  (handler {:uri            "/api/nad-t778/Main.Volume"
+                                  :request-method :post
+                                  :body           (java.io.StringReader. body)})
               resp-body (json/read-json (:body response) :key-fn keyword)]
           (is (= 200 (:status response)))
           (is (= "-29" (:value resp-body))))
 
         ;; Decrement volume
-        (let [body     (json/write-json-str {:operator "-"})
-              response (handler {:uri            "/api/Main.Volume"
-                                 :request-method :post
-                                 :body           (java.io.StringReader. body)})
+        (let [body      (json/write-json-str {:operator "-"})
+              response  (handler {:uri            "/api/nad-t778/Main.Volume"
+                                  :request-method :post
+                                  :body           (java.io.StringReader. body)})
               resp-body (json/read-json (:body response) :key-fn keyword)]
           (is (= 200 (:status response)))
           (is (= "-30" (:value resp-body))))
@@ -278,25 +278,25 @@
   (testing "mute can be toggled on and off"
     (let [conn    (-> (telnet/connect "localhost" *mock-port* 2000)
                       (telnet/introspect))
-          handler (web/handler conn)]
+          handler (web/handler {"nad-t778" conn})]
       (try
         ;; Mute on
-        (let [body     (json/write-json-str {:operator "=" :value "On"})
-              response (handler {:uri            "/api/Main.Mute"
-                                 :request-method :post
-                                 :body           (java.io.StringReader. body)})
+        (let [body      (json/write-json-str {:operator "=" :value "On"})
+              response  (handler {:uri            "/api/nad-t778/Main.Mute"
+                                  :request-method :post
+                                  :body           (java.io.StringReader. body)})
               resp-body (json/read-json (:body response) :key-fn keyword)]
           (is (= 200 (:status response)))
           (is (= "On" (:value resp-body))))
 
         ;; Verify mute is on
-        (let [response (handler {:uri "/api/Main.Mute" :request-method :get})
+        (let [response (handler {:uri "/api/nad-t778/Main.Mute" :request-method :get})
               body     (json/read-json (:body response) :key-fn keyword)]
           (is (= "On" (:value body))))
 
         ;; Mute off
         (let [body     (json/write-json-str {:operator "=" :value "Off"})
-              response (handler {:uri            "/api/Main.Mute"
+              response (handler {:uri            "/api/nad-t778/Main.Mute"
                                  :request-method :post
                                  :body           (java.io.StringReader. body)})]
           (is (= 200 (:status response))))
@@ -307,24 +307,24 @@
   (testing "source can be changed"
     (let [conn    (-> (telnet/connect "localhost" *mock-port* 2000)
                       (telnet/introspect))
-          handler (web/handler conn)]
+          handler (web/handler {"nad-t778" conn})]
       (try
         ;; Query current source
-        (let [response (handler {:uri "/api/Main.Source" :request-method :get})
+        (let [response (handler {:uri "/api/nad-t778/Main.Source" :request-method :get})
               body     (json/read-json (:body response) :key-fn keyword)]
           (is (= "6" (:value body))))
 
         ;; Change to source 3
-        (let [body     (json/write-json-str {:operator "=" :value "3"})
-              response (handler {:uri            "/api/Main.Source"
-                                 :request-method :post
-                                 :body           (java.io.StringReader. body)})
+        (let [body      (json/write-json-str {:operator "=" :value "3"})
+              response  (handler {:uri            "/api/nad-t778/Main.Source"
+                                  :request-method :post
+                                  :body           (java.io.StringReader. body)})
               resp-body (json/read-json (:body response) :key-fn keyword)]
           (is (= 200 (:status response)))
           (is (= "3" (:value resp-body))))
 
         ;; Verify source changed
-        (let [response (handler {:uri "/api/Main.Source" :request-method :get})
+        (let [response (handler {:uri "/api/nad-t778/Main.Source" :request-method :get})
               body     (json/read-json (:body response) :key-fn keyword)]
           (is (= "3" (:value body))))
         (finally
@@ -334,9 +334,9 @@
   (testing "returns 404 for unknown commands"
     (let [conn    (-> (telnet/connect "localhost" *mock-port* 2000)
                       (telnet/introspect))
-          handler (web/handler conn)]
+          handler (web/handler {"nad-t778" conn})]
       (try
-        (let [response (handler {:uri "/api/Unknown.Command" :request-method :get})]
+        (let [response (handler {:uri "/api/nad-t778/Unknown.Command" :request-method :get})]
           (is (= 404 (:status response)))
           (let [body (json/read-json (:body response) :key-fn keyword)]
             (is (= "not-found" (:error body)))))
@@ -346,10 +346,10 @@
   (testing "returns 400 for invalid operator"
     (let [conn    (-> (telnet/connect "localhost" *mock-port* 2000)
                       (telnet/introspect))
-          handler (web/handler conn)]
+          handler (web/handler {"nad-t778" conn})]
       (try
         (let [body     (json/write-json-str {:operator "!"})
-              response (handler {:uri            "/api/Main.Power"
+              response (handler {:uri            "/api/nad-t778/Main.Power"
                                  :request-method :post
                                  :body           (java.io.StringReader. body)})]
           (is (= 400 (:status response)))
@@ -361,10 +361,10 @@
   (testing "returns 400 for missing value with = operator"
     (let [conn    (-> (telnet/connect "localhost" *mock-port* 2000)
                       (telnet/introspect))
-          handler (web/handler conn)]
+          handler (web/handler {"nad-t778" conn})]
       (try
         (let [body     (json/write-json-str {:operator "="})
-              response (handler {:uri            "/api/Main.Power"
+              response (handler {:uri            "/api/nad-t778/Main.Power"
                                  :request-method :post
                                  :body           (java.io.StringReader. body)})]
           (is (= 400 (:status response)))
@@ -377,35 +377,35 @@
   (testing "simulates Home Assistant switch integration workflow"
     (let [conn    (-> (telnet/connect "localhost" *mock-port* 2000)
                       (telnet/introspect))
-          handler (web/handler conn)]
+          handler (web/handler {"nad-t778" conn})]
       (try
         ;; HA polls state with GET
-        (let [response (handler {:uri "/api/Main.Power" :request-method :get})
+        (let [response (handler {:uri "/api/nad-t778/Main.Power" :request-method :get})
               body     (json/read-json (:body response) :key-fn keyword)]
           (is (= 200 (:status response)))
           (is (= "Off" (:value body))))
 
         ;; HA turns switch on with POST
         (let [body     (json/write-json-str {:operator "=" :value "On"})
-              response (handler {:uri            "/api/Main.Power"
+              response (handler {:uri            "/api/nad-t778/Main.Power"
                                  :request-method :post
                                  :body           (java.io.StringReader. body)})]
           (is (= 200 (:status response))))
 
         ;; HA polls state again - should be On
-        (let [response (handler {:uri "/api/Main.Power" :request-method :get})
+        (let [response (handler {:uri "/api/nad-t778/Main.Power" :request-method :get})
               body     (json/read-json (:body response) :key-fn keyword)]
           (is (= "On" (:value body))))
 
         ;; HA turns switch off with POST
         (let [body     (json/write-json-str {:operator "=" :value "Off"})
-              response (handler {:uri            "/api/Main.Power"
+              response (handler {:uri            "/api/nad-t778/Main.Power"
                                  :request-method :post
                                  :body           (java.io.StringReader. body)})]
           (is (= 200 (:status response))))
 
         ;; Final state check
-        (let [response (handler {:uri "/api/Main.Power" :request-method :get})
+        (let [response (handler {:uri "/api/nad-t778/Main.Power" :request-method :get})
               body     (json/read-json (:body response) :key-fn keyword)]
           (is (= "Off" (:value body))))
         (finally
