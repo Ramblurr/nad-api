@@ -8,7 +8,7 @@
 
   };
   outputs =
-    {
+    inputs@{
       self,
       devenv,
       devshell,
@@ -16,6 +16,7 @@
       ...
     }:
     devenv.lib.mkFlake ./. {
+      inherit inputs;
       withOverlays = [
         devshell.overlays.default
         devenv.overlays.default
