@@ -298,11 +298,17 @@
   If the connection has been introspected (has `:supported-commands`),
   validates that the command is supported before sending.
 
+  Access to the socket is serialized - concurrent callers will block until
+  the previous command completes. This prevents interleaved commands from
+  multiple HTTP requests.
+
   ```clojure
   (send-command conn \"Main.Power?\")
   ;=> \"Main.Temp.PSU=36\\nMain.Power=On\"
   ```"
   [{:keys [socket] :as conn} cmd]
   (validate-command! conn cmd)
-  (sockets/write socket (wrap-command cmd))
-  (read-all-available conn default-read-timeout-ms))
+  (locking socket
+    (sockets/write socket (wrap-command cmd))
+    (read-all-available conn default-read-timeout-ms)))
+
