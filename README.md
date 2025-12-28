@@ -1,13 +1,8 @@
-# nad-telnet-to-rest
+# nad-api
 
-A REST API bridge for NAD receivers with telnet control interfaces.
-Connects to your NAD receiver over telnet and exposes a simple HTTP API for controlling power, volume, source, and other settings.
+A REST API bridge for NAD receivers with telnet control. It connects to your receiver over telnet and exposes an HTTP API for power, volume, source, and other settings.
 
-Designed for integration with Home Assistant and other home automation systems.
-
-Tested with the NAD T778.
-Should work with other NAD receivers that support telnet control.
-
+Built for Home Assistant and other home automation systems. Tested on the NAD T778 but should work with any NAD receiver that supports telnet control.
 
 ## Quickstart
 
@@ -23,8 +18,13 @@ Should work with other NAD receivers that support telnet control.
 2. Run the server:
 
 ```bash
+# if you have nix
+nix run github:ramblurr/nad-api
+
+# or from a local checkout
 clojure -M -m ol.nad-api
 ```
+
 
 
 ## How It Works
