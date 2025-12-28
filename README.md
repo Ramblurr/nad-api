@@ -41,6 +41,27 @@ clojure -M -m ol.nad-api
 - `POST /api/{device}/{command}` - Set or modify value
 
 
+## Home Assistant Usage
+
+This was created primarily to expose my NAD receiver to Home Assistant.
+
+HA has two pre-existing integrations that *could* be used, but in my experience neither work wrll.
+
+- [Telnet](https://www.home-assistant.io/integrations/telnet/) - I could not get the `value_template` / `command_state` working with my NAD. Furthermore this integration uses the deprecated telnetlib python module, so it's probably going to be removed.
+- [NAD](https://www.home-assistant.io/integrations/NAD) - Does not work reliably. The entity goes offline for days at a time.
+
+Notably I do not need a `media_player` entity for my NAD receiver, the Bluesound and Roon integrations take care of that. I need controls for power (main zone and zone 2) and volume, etc.
+And I need it to work reliably!
+
+I don't want to create or maintain a new custom integration. Rather we lean on the following builtin HA integrations:
+
+- [Restful Switch](https://www.home-assistant.io/integrations/switch.rest/)
+- [RESTful binary sensor](https://www.home-assistant.io/integrations/binary_sensor.rest)
+- [RESTful sensor](https://www.home-assistant.io/integrations/sensor.rest)
+- [RESTful command](https://www.home-assistant.io/integrations/rest_command)
+
+More information at [docs/home-assistant.md](./docs/home-assistant.md)
+
 ## API Examples
 
 ### List All Devices
