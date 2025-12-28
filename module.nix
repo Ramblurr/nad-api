@@ -160,8 +160,8 @@ in
         Group = cfg.group;
         ExecStart = "${cfg.package}/bin/nad-api";
         ConfigurationDirectory = "nad-api";
-        Restart = "on-failure";
-        RestartSec = 5;
+        Restart = "always";
+        RestartSec = 2;
         # Hardening
         CapabilityBoundingSet = "";
         NoNewPrivileges = true;

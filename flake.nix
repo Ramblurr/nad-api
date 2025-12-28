@@ -39,6 +39,14 @@
         default = nad-api;
       };
       nixosModule = ./module.nix;
+      checks = {
+        nixos-module =
+          pkgs:
+          (import ./test/nixos-module.nix {
+            inherit self pkgs;
+            nixpkgs = devenv.inputs.nixpkgs;
+          });
+      };
 
       devShell =
         pkgs:
