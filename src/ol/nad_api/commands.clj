@@ -94,3 +94,21 @@
   ```"
   [cmd operator value]
   (str cmd operator (or value "")))
+
+(defn coerce-value
+  "Coerces a string value to the appropriate type based on command metadata.
+
+  Commands with `:values {:type :range ...}` are parsed as longs.
+  All other values are returned as strings.
+
+  ```clojure
+  (coerce-value \"Main.Volume\" \"-48\")  ;=> -48
+  (coerce-value \"Main.Power\" \"On\")    ;=> \"On\"
+  (coerce-value \"Main.Model\" \"T778\")  ;=> \"T778\"
+  ```"
+  [cmd value]
+  (when value
+    (let [values-spec (get-in commands [cmd :values])]
+      (if (and (map? values-spec) (= :range (:type values-spec)))
+        (parse-long value)
+        value))))

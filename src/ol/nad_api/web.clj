@@ -67,7 +67,7 @@
       (let [conn     (deref-conn conn-ref)
             wire-cmd (commands/build-command cmd "?" nil)
             response (telnet/send-command conn wire-cmd)
-            value    (telnet/parse-response response cmd)]
+            value    (commands/coerce-value cmd (telnet/parse-response response cmd))]
         (json-response 200 {:command cmd :value value}))
       (catch java.net.SocketTimeoutException _
         (json-response 504 {:error   "timeout"
@@ -111,14 +111,14 @@
             (if result-value
               (json-response 200 {:command  cmd
                                   :operator operator
-                                  :value    result-value})
+                                  :value    (commands/coerce-value cmd result-value)})
               ;; No confirmation - query to get current value
               (let [query-cmd   (commands/build-command cmd "?" nil)
                     query-resp  (telnet/send-command conn query-cmd)
                     query-value (telnet/parse-response query-resp cmd)]
                 (json-response 200 {:command  cmd
                                     :operator operator
-                                    :value    query-value}))))
+                                    :value    (commands/coerce-value cmd query-value)}))))
           (catch java.net.SocketTimeoutException _
             (json-response 504 {:error   "timeout"
                                 :message "Device did not respond"}))

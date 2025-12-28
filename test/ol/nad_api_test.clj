@@ -201,12 +201,12 @@
           (is (= "Main.Power" (:command body)))
           (is (= "Off" (:value body))))
 
-        ;; Query volume
+        ;; Query volume (numeric value)
         (let [response (handler {:uri "/api/nad-t778/Main.Volume" :request-method :get})
               body     (json/read-json (:body response) :key-fn keyword)]
           (is (= 200 (:status response)))
           (is (= "Main.Volume" (:command body)))
-          (is (= "-48" (:value body))))
+          (is (= -48 (:value body))))
         (finally
           (telnet/disconnect conn))))))
 
@@ -247,32 +247,32 @@
                       (telnet/introspect))
           handler (web/handler {"nad-t778" conn})]
       (try
-        ;; Set volume to -30
+        ;; Set volume to -30 (numeric value)
         (let [body      (json/write-json-str {:operator "=" :value "-30"})
               response  (handler {:uri            "/api/nad-t778/Main.Volume"
                                   :request-method :post
                                   :body           (java.io.StringReader. body)})
               resp-body (json/read-json (:body response) :key-fn keyword)]
           (is (= 200 (:status response)))
-          (is (= "-30" (:value resp-body))))
+          (is (= -30 (:value resp-body))))
 
-        ;; Increment volume
+        ;; Increment volume (numeric value)
         (let [body      (json/write-json-str {:operator "+"})
               response  (handler {:uri            "/api/nad-t778/Main.Volume"
                                   :request-method :post
                                   :body           (java.io.StringReader. body)})
               resp-body (json/read-json (:body response) :key-fn keyword)]
           (is (= 200 (:status response)))
-          (is (= "-29" (:value resp-body))))
+          (is (= -29 (:value resp-body))))
 
-        ;; Decrement volume
+        ;; Decrement volume (numeric value)
         (let [body      (json/write-json-str {:operator "-"})
               response  (handler {:uri            "/api/nad-t778/Main.Volume"
                                   :request-method :post
                                   :body           (java.io.StringReader. body)})
               resp-body (json/read-json (:body response) :key-fn keyword)]
           (is (= 200 (:status response)))
-          (is (= "-30" (:value resp-body))))
+          (is (= -30 (:value resp-body))))
         (finally
           (telnet/disconnect conn))))))
 
@@ -311,24 +311,24 @@
                       (telnet/introspect))
           handler (web/handler {"nad-t778" conn})]
       (try
-        ;; Query current source
+        ;; Query current source (numeric value)
         (let [response (handler {:uri "/api/nad-t778/Main.Source" :request-method :get})
               body     (json/read-json (:body response) :key-fn keyword)]
-          (is (= "6" (:value body))))
+          (is (= 6 (:value body))))
 
-        ;; Change to source 3
+        ;; Change to source 3 (numeric value)
         (let [body      (json/write-json-str {:operator "=" :value "3"})
               response  (handler {:uri            "/api/nad-t778/Main.Source"
                                   :request-method :post
                                   :body           (java.io.StringReader. body)})
               resp-body (json/read-json (:body response) :key-fn keyword)]
           (is (= 200 (:status response)))
-          (is (= "3" (:value resp-body))))
+          (is (= 3 (:value resp-body))))
 
-        ;; Verify source changed
+        ;; Verify source changed (numeric value)
         (let [response (handler {:uri "/api/nad-t778/Main.Source" :request-method :get})
               body     (json/read-json (:body response) :key-fn keyword)]
-          (is (= "3" (:value body))))
+          (is (= 3 (:value body))))
         (finally
           (telnet/disconnect conn))))))
 
