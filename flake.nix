@@ -32,6 +32,7 @@
               {
                 projectSrc = ./.;
                 name = "io.github.ramblurr/nad-api";
+                version = "0.2";
                 main-ns = "ol.nad-api";
                 nativeImage.enable = true;
                 # customJdk.enable = true;
