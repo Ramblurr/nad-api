@@ -447,8 +447,16 @@
           (.delete tmp-file)))))
 
   (testing "falls back to ./config.edn when it exists"
-    ;; config.edn exists in project root
-    (is (= "config.edn" (api/find-config-file {}))))
+    ;; Create config.edn temporarily for this test
+    (let [config-file (File. "config.edn")
+          existed?    (.exists config-file)]
+      (try
+        (when-not existed?
+          (spit config-file "{}"))
+        (is (= "config.edn" (api/find-config-file {})))
+        (finally
+          (when-not existed?
+            (.delete config-file))))))
 
   (testing "exception contains searched paths and hint"
     ;; We can't easily test the throw case since config.edn exists in project root.
