@@ -65,17 +65,73 @@
     (is (nil? (sut/parse-response ""))))
 
   (testing "handles values containing equals sign"
-    (is (= "foo=bar" (sut/parse-response "Some.Command=foo=bar")))))
+    (is (= "foo=bar" (sut/parse-response "Some.Command=foo=bar"))))
+
+  (testing "finds specific command in multi-line response"
+    (let [multi-line "Main.Temp.PSU=32\nMain.Temp.Front=28\nMain.Power=On"]
+      (is (= "On" (sut/parse-response multi-line "Main.Power")))
+      (is (= "32" (sut/parse-response multi-line "Main.Temp.PSU")))
+      (is (= "28" (sut/parse-response multi-line "Main.Temp.Front")))))
+
+  (testing "returns nil when command not found in multi-line"
+    (let [multi-line "Main.Temp.PSU=32\nMain.Power=On"]
+      (is (nil? (sut/parse-response multi-line "Main.Volume")))))
+
+  (testing "handles T778-style temperature dump"
+    (let [response (str "Main.Temp.PSU=32\n"
+                        "Main.Temp.Front=28\n"
+                        "Main.Temp.Surround=29\n"
+                        "Main.Fan.Status=1000,0,OK\n"
+                        "Main.Power=On")]
+      (is (= "On" (sut/parse-response response "Main.Power")))
+      (is (= "1000,0,OK" (sut/parse-response response "Main.Fan.Status"))))))
+
+(deftest parse-command-test
+  (testing "extracts command name before operator"
+    (is (= "Main.Power" (sut/parse-command "Main.Power?")))
+    (is (= "Main.Power" (sut/parse-command "Main.Power=On")))
+    (is (= "Main.Volume" (sut/parse-command "Main.Volume+")))
+    (is (= "Main.Volume" (sut/parse-command "Main.Volume-"))))
+
+  (testing "returns nil for invalid commands"
+    (is (nil? (sut/parse-command "")))
+    (is (nil? (sut/parse-command "NoOperator")))))
+
+(deftest parse-introspection-response-test
+  (testing "parses multi-line introspection response into set of command names"
+    (let [response "Main.Model=T778\nMain.Power=Off\nMain.Volume=-48\nMain.Source=6"]
+      (is (= #{"Main.Model" "Main.Power" "Main.Volume" "Main.Source"}
+             (sut/parse-introspection-response response)))))
+
+  (testing "handles empty response"
+    (is (= #{} (sut/parse-introspection-response ""))))
+
+  (testing "filters out lines without equals sign"
+    (let [response "Main.Power=On\nInvalidLine\nMain.Volume=-48"]
+      (is (= #{"Main.Power" "Main.Volume"}
+             (sut/parse-introspection-response response))))))
 
 ;; Mock NAD server for connection tests
 (def ^:dynamic *mock-server* nil)
 (def ^:dynamic *mock-port* nil)
+
+;; Simulated introspection response (like real NAD "?" command)
+(def mock-introspection-response
+  (str "Main.Model=T778\r"
+       "Main.Power=Off\r"
+       "Main.Volume=-48\r"
+       "Main.Source=6\r"
+       "Main.Mute=Off\r"
+       "Main.Version=v2.24\r"
+       "Zone2.Power=Off\r"
+       "Zone2.Volume=-60\r"))
 
 (defn with-mock-nad-server
   "Fixture that starts a mock NAD server for testing.
 
   The mock server:
   - Sends `Main.Model=T778\\r` on connection (like real NAD)
+  - Responds to bare `?` with introspection data
   - Echoes back commands with `=On` appended for set commands
   - Returns queried value for query commands"
   [f]
@@ -107,7 +163,13 @@
                                                   (str/replace #"^\n" "")
                                                   (str/replace #"\r$" ""))]
                                 (cond
-                                  ;; Query command
+                                  ;; Bare "?" - introspection command
+                                  (= cmd-clean "?")
+                                  (do
+                                    (.write out (.getBytes mock-introspection-response))
+                                    (.flush out))
+
+                                  ;; Query command (e.g., Main.Power?)
                                   (str/ends-with? cmd-clean "?")
                                   (let [base (subs cmd-clean 0 (dec (count cmd-clean)))]
                                     (.write out (.getBytes (str "\n" base "=On\r")))
@@ -191,5 +253,57 @@
       (try
         (let [response (sut/send-command conn "Main.Volume+")]
           (is (= "Main.Volume=-47" response)))
+        (finally
+          (sut/disconnect conn))))))
+
+(deftest introspect-test
+  (testing "sends ? command and parses supported commands"
+    (let [conn (-> (sut/connect "localhost" *mock-port* 2000)
+                   (sut/introspect))]
+      (try
+        (is (contains? conn :supported-commands))
+        (is (set? (:supported-commands conn)))
+        (is (contains? (:supported-commands conn) "Main.Power"))
+        (is (contains? (:supported-commands conn) "Main.Volume"))
+        (is (contains? (:supported-commands conn) "Zone2.Power"))
+        (finally
+          (sut/disconnect conn)))))
+
+  (testing "filters supported commands against registry"
+    (let [conn (-> (sut/connect "localhost" *mock-port* 2000)
+                   (sut/introspect))]
+      (try
+        ;; Main.Model is in introspection but only has ? operator in registry
+        (is (contains? (:supported-commands conn) "Main.Model"))
+        ;; Main.Power is fully supported
+        (is (contains? (:supported-commands conn) "Main.Power"))
+        (finally
+          (sut/disconnect conn))))))
+
+(deftest send-command-validation-test
+  (testing "allows supported commands after introspection"
+    (let [conn (-> (sut/connect "localhost" *mock-port* 2000)
+                   (sut/introspect))]
+      (try
+        (let [response (sut/send-command conn "Main.Power?")]
+          (is (= "Main.Power=On" response)))
+        (finally
+          (sut/disconnect conn)))))
+
+  (testing "throws for unsupported commands after introspection"
+    (let [conn (-> (sut/connect "localhost" *mock-port* 2000)
+                   (sut/introspect))]
+      (try
+        (is (thrown-with-msg? Exception #"not supported"
+                              (sut/send-command conn "Unsupported.Command?")))
+        (finally
+          (sut/disconnect conn)))))
+
+  (testing "allows any command without introspection"
+    (let [conn (sut/connect "localhost" *mock-port* 2000)]
+      (try
+        ;; Without introspection, any command is allowed
+        (let [response (sut/send-command conn "Main.Power?")]
+          (is (= "Main.Power=On" response)))
         (finally
           (sut/disconnect conn))))))

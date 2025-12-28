@@ -46,6 +46,9 @@
          {:doc     "Run CI checks: test, format check, and lint"
           :depends [test fmt:check lint]}
 
+         nix:lock  {:doc "Lock deps.edn for the nix package"
+                    :task (shell "nix run github:jlesquembre/clj-nix#deps-lock")}
+
          jar     {:override-builtin true
                   :depends          [clean]
                   :doc              "Build an jar"

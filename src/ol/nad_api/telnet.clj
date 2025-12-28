@@ -67,7 +67,11 @@
 (defn parse-response
   "Parses `Domain.Command=Value` response, returns the value.
 
-  Returns nil if response has no equals sign.
+  The T778 pushes unsolicited temperature data periodically, so responses
+  often contain multiple lines (temp readings mixed with actual response).
+  Pass `cmd` to find the specific command you care about.
+
+  Returns nil if response has no equals sign or command not found.
 
   ```clojure
   (parse-response \"Main.Power=On\")
@@ -75,10 +79,67 @@
 
   (parse-response \"Main.Volume=-48\")
   ;=> \"-48\"
+
+  ;; Multi-line response with unsolicited temp data
+  (parse-response \"Main.Temp.PSU=32\\nMain.Power=On\" \"Main.Power\")
+  ;=> \"On\"
+  ```"
+  ([response]
+   (parse-response response nil))
+  ([response cmd]
+   (if cmd
+     ;; Search for the specific command line in multi-line response
+     (let [prefix (str cmd "=")
+           lines  (str/split-lines response)]
+       (some (fn [line]
+               (when (str/starts-with? line prefix)
+                 (subs line (count prefix))))
+             lines))
+     ;; Original behavior - first = sign
+     (when-let [idx (str/index-of response "=")]
+       (subs response (inc idx))))))
+
+(def ^:private operator-pattern #"[?=+\-]")
+
+(defn parse-command
+  "Extracts the command name from a command string.
+
+  Strips the operator (`?`, `=`, `+`, `-`) and any value.
+
+  ```clojure
+  (parse-command \"Main.Power?\")
+  ;=> \"Main.Power\"
+
+  (parse-command \"Main.Power=On\")
+  ;=> \"Main.Power\"
+
+  (parse-command \"Main.Volume+\")
+  ;=> \"Main.Volume\"
+  ```"
+  [cmd]
+  (when (and (not (str/blank? cmd))
+             (re-find operator-pattern cmd))
+    (first (str/split cmd operator-pattern 2))))
+
+(defn parse-introspection-response
+  "Parses a multi-line introspection response into a set of command names.
+
+  The introspection response from the bare `?` command contains lines like:
+  `Main.Power=Off`
+  `Main.Volume=-48`
+
+  Returns a set of command names (e.g., `#{\"Main.Power\" \"Main.Volume\"}`).
+
+  ```clojure
+  (parse-introspection-response \"Main.Power=Off\\nMain.Volume=-48\")
+  ;=> #{\"Main.Power\" \"Main.Volume\"}
   ```"
   [response]
-  (when-let [idx (str/index-of response "=")]
-    (subs response (inc idx))))
+  (->> (str/split-lines response)
+       (keep (fn [line]
+               (when-let [idx (str/index-of line "=")]
+                 (subs line 0 idx))))
+       (into #{})))
 
 ;;; Connection management
 
@@ -136,16 +197,81 @@
         model            (parse-response initial-response)]
     (assoc conn :model model)))
 
+(defn- read-all-available
+  "Reads all available responses from the connection.
+
+  The T778 pushes unsolicited data (temperature readings) periodically.
+  This function reads all available lines until timeout, collecting both
+  unsolicited data and command responses.
+
+  Uses a short inter-line timeout to detect end of data quickly.
+  Returns lines joined by newlines (no trailing newline)."
+  [{:keys [socket]} read-timeout-ms]
+  (let [lines (java.util.ArrayList.)]
+    (try
+      (loop []
+        (let [response (sockets/read-until socket \return read-timeout-ms)]
+          (.add lines (unwrap-response response))
+          (recur)))
+      (catch java.net.SocketTimeoutException _
+        ;; Timeout means no more data - that's expected
+        (str/join "\n" lines)))))
+
+(defn introspect
+  "Sends the introspection command `?` and discovers supported commands.
+
+  Returns the connection with `:supported-commands` added - a set of
+  command names that the device supports.
+
+  ```clojure
+  (-> (connect \"10.0.0.1\" 23 2000)
+      (introspect))
+  ;=> {:socket ... :model \"T778\" :supported-commands #{\"Main.Power\" ...}}
+  ```"
+  [{:keys [socket] :as conn}]
+  ;; Use a shorter timeout for introspection reads since we need to detect end
+  (sockets/write socket (wrap-command "?"))
+  (let [response  (read-all-available conn 500)
+        supported (parse-introspection-response response)]
+    (assoc conn :supported-commands supported)))
+
+(defn- validate-command!
+  "Validates that a command is supported (if introspection data is present).
+
+  Throws if the command is not in the supported set."
+  [{:keys [supported-commands]} cmd]
+  (when supported-commands
+    (let [cmd-name (parse-command cmd)]
+      (when-not (contains? supported-commands cmd-name)
+        (throw (ex-info (str "Command '" cmd-name "' is not supported by this device")
+                        {:command cmd
+                         :command-name cmd-name
+                         :supported-commands supported-commands}))))))
+
+(def ^:private default-read-timeout-ms
+  "Default timeout for reading command responses.
+
+  Short enough to not block too long, but long enough for device to respond."
+  500)
+
 (defn send-command
-  "Sends a command and returns the response.
+  "Sends a command and returns all available response data.
 
   The command should be the raw command string (e.g., `\"Main.Power?\"`).
-  Returns the unwrapped response (e.g., `\"Main.Power=On\"`).
+  Returns all available response lines as a multi-line string.
+
+  The T778 pushes unsolicited data (temperature) periodically, so responses
+  may contain multiple lines. Use `parse-response` with a command name to
+  extract the specific value you need.
+
+  If the connection has been introspected (has `:supported-commands`),
+  validates that the command is supported before sending.
 
   ```clojure
   (send-command conn \"Main.Power?\")
-  ;=> \"Main.Power=On\"
+  ;=> \"Main.Temp.PSU=36\\nMain.Power=On\"
   ```"
   [{:keys [socket] :as conn} cmd]
+  (validate-command! conn cmd)
   (sockets/write socket (wrap-command cmd))
-  (read-response conn))
+  (read-all-available conn default-read-timeout-ms))
