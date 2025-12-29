@@ -89,6 +89,15 @@ makeTest {
     result = machine.succeed("curl -s http://localhost:8002/api/test-nad")
     assert "T778" in result, f"Expected 'T778' model in response, got: {result}"
 
+    # Test service restart (verifies config file can be overwritten)
+    machine.succeed("systemctl restart nad-api.service")
+    machine.wait_for_unit("nad-api.service")
+    machine.wait_for_open_port(8002)
+
+    # Verify API still works after restart
+    result = machine.succeed("curl -s http://localhost:8002/api")
+    assert "test-nad" in result, f"Expected 'test-nad' after restart, got: {result}"
+
     print("All tests passed!")
   '';
 }

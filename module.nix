@@ -178,9 +178,9 @@ in
         MemoryDenyWriteExecute = false; # JVM needs this
       };
 
-      preStart = ''
-        cp ${configFile} $CONFIGURATION_DIRECTORY/config.edn
-      '';
+      serviceConfig.ExecStartPre = [
+        "+${pkgs.coreutils}/bin/install -m 0600 -o ${cfg.user} -g ${cfg.group} ${configFile} /etc/nad-api/config.edn"
+      ];
     };
   };
 }
