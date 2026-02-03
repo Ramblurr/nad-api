@@ -7,7 +7,7 @@
            party.donut/system    {:mvn/version "1.0.257"
                                   :exclusions  [tailrecursion/cljs-priority-map]}
            ring/ring-defaults    {:mvn/version "0.7.0"}
-           com.cnuernber/charred {:mvn/version "1.037"}
+           com.cnuernber/charred {:mvn/version "1.038"}
            babashka/process      {:mvn/version "0.6.25"}}
  :aliases {:kaocha {:extra-paths ["test"]
                     :extra-deps  {lambdaisland/kaocha {:mvn/version "1.91.1392"}}
