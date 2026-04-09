@@ -5,7 +5,6 @@
     devshell.url = "github:numtide/devshell";
     devenv.url = "https://flakehub.com/f/ramblurr/nix-devenv/*";
     clj-nix.url = "github:jlesquembre/clj-nix";
-
   };
   outputs =
     inputs@{
