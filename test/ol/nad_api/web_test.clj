@@ -332,3 +332,17 @@
         (finally
           (telnet/disconnect conn1)
           (telnet/disconnect conn2))))))
+
+(deftest handler-recovers-from-disconnected-startup-test
+  (testing "command routes work after a device starts disconnected"
+    (let [conn-ref (atom {:host       "localhost"
+                          :port       *mock-port*
+                          :timeout-ms 2000})
+          h        (sut/handler {"nad-t778" conn-ref})
+          response (h {:uri "/api/nad-t778/Main.Power" :request-method :get})]
+      (is (= 200 (:status response)))
+      (let [body (json/read-json (:body response) :key-fn keyword)]
+        (is (= "Main.Power" (:command body)))
+        (is (= "On" (:value body))))
+      (is (= "T778" (:model @conn-ref)))
+      (is (contains? (:supported-commands @conn-ref) "Main.Power")))))

@@ -20,6 +20,9 @@
 
 (set! *warn-on-reflection* true)
 
+(def ^:private all-known-commands
+  (set (keys commands/commands)))
+
 (defn- deref-conn
   "Dereferences connection if it's an atom, otherwise returns as-is."
   [conn-or-atom]
@@ -38,8 +41,19 @@
   ```"
   [supported-commands]
   (if (seq supported-commands)
-    (set/intersection supported-commands (set (keys commands/commands)))
+    (set/intersection supported-commands all-known-commands)
     #{}))
+
+(defn- routeable-commands
+  "Returns commands that should always have routes.
+
+  Devices with no introspection data yet keep command routes so they can
+  reconnect on demand.
+  Devices that were introspected to an empty set keep no command routes."
+  [{:keys [supported-commands]}]
+  (if (nil? supported-commands)
+    all-known-commands
+    (available-commands supported-commands)))
 
 (defn- json-response
   "Creates a Ring response with JSON body and content-type header."
@@ -47,6 +61,43 @@
   (-> (response/response (json/write-json-str body))
       (response/status status)
       (response/header "Content-Type" "application/json")))
+
+(defn- disconnected-conn
+  "Returns disconnected state while preserving connection settings."
+  [conn ^Throwable throwable]
+  (cond-> (select-keys conn [:host :port :timeout-ms])
+    throwable (assoc :last-error (or (.getMessage throwable)
+                                     (.getName (class throwable))))))
+
+(defn- remember-disconnection!
+  "Stores disconnected state for a mutable connection reference."
+  [conn-ref ^Throwable throwable]
+  (when (instance? clojure.lang.Atom conn-ref)
+    (reset! conn-ref (disconnected-conn @conn-ref throwable))))
+
+(defn- ensure-conn
+  "Returns an active connection, reconnecting mutable refs on demand."
+  [conn-ref]
+  (let [conn (deref-conn conn-ref)]
+    (if (or (not (instance? clojure.lang.Atom conn-ref))
+            (telnet/connected? conn))
+      conn
+      (try
+        (let [new-conn (-> (telnet/connect (:host conn)
+                                           (:port conn)
+                                           (:timeout-ms conn))
+                           (telnet/introspect))]
+          (reset! conn-ref new-conn)
+          new-conn)
+        (catch Exception e
+          (remember-disconnection! conn-ref e)
+          (throw e))))))
+
+(defn- error-message
+  "Returns a readable message for exceptions."
+  [^Throwable e]
+  (or (.getMessage e)
+      (.getName (class e))))
 
 (defn- parse-request-body
   "Parses JSON request body, returns map with keyword keys."
@@ -64,17 +115,19 @@
   [cmd conn-ref]
   (fn [_request]
     (try
-      (let [conn     (deref-conn conn-ref)
+      (let [conn     (ensure-conn conn-ref)
             wire-cmd (commands/build-command cmd "?" nil)
             response (telnet/send-command conn wire-cmd)
             value    (commands/coerce-value cmd (telnet/parse-response response cmd))]
         (json-response 200 {:command cmd :value value}))
-      (catch java.net.SocketTimeoutException _
+      (catch java.net.SocketTimeoutException e
+        (remember-disconnection! conn-ref e)
         (json-response 504 {:error   "timeout"
                             :message "Device did not respond"}))
       (catch Exception e
+        (remember-disconnection! conn-ref e)
         (json-response 503 {:error   "connection-error"
-                            :message (.getMessage e)})))))
+                            :message (error-message e)})))))
 
 (defn- modify-handler
   "Creates POST handler for a command.
@@ -103,7 +156,7 @@
 
         :else
         (try
-          (let [conn         (deref-conn conn-ref)
+          (let [conn         (ensure-conn conn-ref)
                 wire-cmd     (commands/build-command cmd operator value)
                 response     (telnet/send-command conn wire-cmd)
                 result-value (telnet/parse-response response cmd)]
@@ -119,12 +172,14 @@
                 (json-response 200 {:command  cmd
                                     :operator operator
                                     :value    (commands/coerce-value cmd query-value)}))))
-          (catch java.net.SocketTimeoutException _
+          (catch java.net.SocketTimeoutException e
+            (remember-disconnection! conn-ref e)
             (json-response 504 {:error   "timeout"
                                 :message "Device did not respond"}))
           (catch Exception e
+            (remember-disconnection! conn-ref e)
             (json-response 503 {:error   "connection-error"
-                                :message (.getMessage e)})))))))
+                                :message (error-message e)})))))))
 
 (defn- device-discovery-handler
   "Creates GET handler for /api/{device} that returns device info and supported commands.
@@ -179,8 +234,9 @@
                               :port   (:port new-conn)
                               :model  (:model new-conn)}))
         (catch Exception e
+          (remember-disconnection! conn-ref e)
           (json-response 503 {:error   "reconnect-failed"
-                              :message (.getMessage e)}))))))
+                              :message (error-message e)}))))))
 
 (defn make-device-routes
   "Generates Reitit route data for a single device's supported commands.
@@ -206,17 +262,16 @@
   ;    [\"/api/nad-t778/Main.Volume\" {:get ... :post ...}]]
   ```"
   [device-name conn-ref]
-  (let [conn      (deref-conn conn-ref)
-        supported (:supported-commands conn)
-        cmds      (available-commands supported)
-        prefix    (str "/api/" device-name)]
+  (let [conn   (deref-conn conn-ref)
+        cmds   (routeable-commands conn)
+        prefix (str "/api/" device-name)]
     (into [[prefix {:get (device-discovery-handler device-name conn-ref)}]
            [(str prefix "/reconnect") {:post (reconnect-handler device-name conn-ref)}]]
           (map (fn [cmd]
                  [(str prefix "/" cmd)
                   {:get  (query-handler cmd conn-ref)
                    :post (modify-handler cmd conn-ref)}]))
-          cmds)))
+          (sort cmds))))
 
 (defn handler
   "Creates a Ring handler for NAD receiver control with multiple devices.

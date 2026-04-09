@@ -15,6 +15,13 @@
 
 (set! *warn-on-reflection* true)
 
+(defn- disconnected-device
+  "Returns device state for an unavailable receiver."
+  [config ^Throwable throwable]
+  (cond-> (select-keys config [:host :port :timeout-ms])
+    throwable (assoc :last-error (or (.getMessage throwable)
+                                     (.getName (class throwable))))))
+
 (defn- make-device-component
   "Creates a donut.system component definition for a NAD device.
 
@@ -24,10 +31,13 @@
                  :port       (or (:port device-config) 23)
                  :timeout-ms (or (:timeout-ms device-config) 2000)}
         :start  (fn [{::ds/keys [config]}]
-                  (let [{:keys [host port timeout-ms]} config
-                        conn                           (-> (telnet/connect host port timeout-ms)
-                                                           (telnet/introspect))]
-                    (atom conn)))
+                  (let [{:keys [host port timeout-ms]} config]
+                    (try
+                      (let [conn (-> (telnet/connect host port timeout-ms)
+                                     (telnet/introspect))]
+                        (atom conn))
+                      (catch Exception e
+                        (atom (disconnected-device config e))))))
         :stop   (fn [{:keys [::ds/instance]}]
                   (when instance
                     (telnet/disconnect @instance)))})

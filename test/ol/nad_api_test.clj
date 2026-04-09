@@ -175,6 +175,21 @@
 
 ;;; End-to-end tests
 
+(deftest system-starts-when-device-is-unreachable-test
+  (testing "api/start does not fail when a configured device is offline"
+    (let [result (try
+                   (api/start {:nad-devices [{:name       "offline-device"
+                                              :host       "127.0.0.1"
+                                              :port       1
+                                              :timeout-ms 100}]
+                               :http        {:ip   "127.0.0.1"
+                                             :port 0}})
+                   (catch Throwable t
+                     t))]
+      (is (not (instance? Throwable result)))
+      (when-not (instance? Throwable result)
+        (api/stop)))))
+
 (deftest e2e-connection-and-introspection-test
   (testing "connects to device and discovers supported commands"
     (let [conn (-> (telnet/connect "localhost" *mock-port* 2000)
