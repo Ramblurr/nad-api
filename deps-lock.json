@@ -112,11 +112,11 @@
     "com/amazonaws/jmespath-java/1.12.49/jmespath-java-1.12.49.pom": {
       "sha256": "2b7abc740a413396f32caea740f2187af8c7aa728337e13b4c72327f46e10f7a"
     },
-    "com/clojure-goes-fast/clj-async-profiler/1.6.2/clj-async-profiler-1.6.2.jar": {
-      "sha256": "32801add983cabccee55a19e7b7ad793ec2e912e78847d742fc386d80695fb03"
+    "com/clojure-goes-fast/clj-async-profiler/1.7.0/clj-async-profiler-1.7.0.jar": {
+      "sha256": "48b3a0bc68ed4cff171098fb11ff744770e9fbb3a3d15e07998c08b2721e1467"
     },
-    "com/clojure-goes-fast/clj-async-profiler/1.6.2/clj-async-profiler-1.6.2.pom": {
-      "sha256": "43e88669bd4659bdf74e73ee9a6b21f384fc3a54fb817ce7243cde4efb73c442"
+    "com/clojure-goes-fast/clj-async-profiler/1.7.0/clj-async-profiler-1.7.0.pom": {
+      "sha256": "16364d91e2d1dc5ec9bae091f4b4a823c06871980adb44cded32925dee6378bf"
     },
     "com/cnuernber/charred/1.037/charred-1.037.jar": {
       "sha256": "eb8d003309209a6940b3173ca479f766aa4664964ade363e69746ab78573c46a"
