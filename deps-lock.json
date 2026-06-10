@@ -562,17 +562,17 @@
     "metosin/malli/0.14.0/malli-0.14.0.pom": {
       "sha256": "73a3d1b2472f0bbf985daf4283edf0a278fe41cd8a5b75684d1b88a0eddd32eb"
     },
-    "metosin/reitit-core/0.9.2/reitit-core-0.9.2.jar": {
-      "sha256": "b38f2246cb3188f43a5447080da624564e9192fa72f31bc4e9bc6b0749257243"
+    "metosin/reitit-core/0.10.1/reitit-core-0.10.1.jar": {
+      "sha256": "ee0061424c1ed9997354efff196b1235eab53bdc9d966f5a037975f377aaaeb5"
     },
-    "metosin/reitit-core/0.9.2/reitit-core-0.9.2.pom": {
-      "sha256": "ccd7e5ad32c5b1e31f8f5b2529d1faf5577ca93e2a65de17ab14462e7fb66aeb"
+    "metosin/reitit-core/0.10.1/reitit-core-0.10.1.pom": {
+      "sha256": "b17aeb94958a9d0167ee92af0513f3df2baa581a5d3764f384c2f784e322a066"
     },
-    "metosin/reitit-ring/0.9.2/reitit-ring-0.9.2.jar": {
-      "sha256": "46d962ef02019f21a4c2d23886f506b8d200b3d8e3edc59d8573626d05148ca9"
+    "metosin/reitit-ring/0.10.1/reitit-ring-0.10.1.jar": {
+      "sha256": "bb8499dc65ee3c8f3ef588d0a730d301279b283d17c5f344f139c3643ffb4cc4"
     },
-    "metosin/reitit-ring/0.9.2/reitit-ring-0.9.2.pom": {
-      "sha256": "bf13c577c2892b005fe6cbb4781d7e446fd296ff80f7d91ebf514ed0e435cb34"
+    "metosin/reitit-ring/0.10.1/reitit-ring-0.10.1.pom": {
+      "sha256": "4da771384af4c953f5b9d6c24fafeab28da52a5758809f710c53761df6621786"
     },
     "mvxcvi/arrangement/2.1.0/arrangement-2.1.0.jar": {
       "sha256": "f37251385d220df8951e68d5255abb5197adbcbd8fc6b3d3fca872a2339f39c8"
