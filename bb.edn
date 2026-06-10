@@ -43,9 +43,9 @@
           :depends [fmt lint test]}
 
          nix:lock  {:doc "Lock deps.edn for the nix package"
-                    :task (shell "nix run github:jlesquembre/clj-nix#deps-lock")}
+                    :task (shell "nix run .#locker")}
 
-         build {:doc  "Build the native image"
+         build {:doc  "Build the package"
                        :task (shell "nix build .#packages.x86_64-linux.default") }
 
 

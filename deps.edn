@@ -17,11 +17,11 @@
                                   io.github.tonsky/clj-reload              {:mvn/version "1.0.0"}
                                   djblue/portal                            {:mvn/version "0.62.1"}
                                   com.clojure-goes-fast/clj-async-profiler {:mvn/version "1.6.2"}}}
-           :build  {:deps       {io.github.clojure/tools.build {:git/tag "v0.10.11"
-                                                                :git/sha "c6c670a"}
+           :build  {:deps       {io.github.clojure/tools.build {:mvn/version "0.10.13"}
                                  slipset/deps-deploy           {:mvn/version "0.2.2"}}
                     :ns-default build}
-           :neil   {:project {:name        com.outskirtslabs/TODO
-                              :license     {:id "TODO"}
-                              :description ""
-                              :version     "0.0.TODO"}}}}
+           :neil   {:project {:name        io.github.ramblurr/nad-api
+                              :url         "https://github.com/ramblurr/nad-api"
+                              :license     {:id "EUPL-1.2"}
+                              :description "A REST API bridge for NAD receivers with telnet control."
+                              :version     "0.2"}}}}
