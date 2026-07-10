@@ -112,11 +112,11 @@
     "com/clojure-goes-fast/clj-async-profiler/1.7.0/clj-async-profiler-1.7.0.pom": {
       "sha256": "16364d91e2d1dc5ec9bae091f4b4a823c06871980adb44cded32925dee6378bf"
     },
-    "com/cnuernber/charred/1.038/charred-1.038.jar": {
-      "sha256": "e7c6924e4ddda99f7f7dc53a30041b3ab4cc9197dc6e02624bc1f4ec6a9b9ef1"
+    "com/cnuernber/charred/1.039/charred-1.039.jar": {
+      "sha256": "b489e37504800325319388c437b29c78b164654140110c9b846d0cd8206b23a4"
     },
-    "com/cnuernber/charred/1.038/charred-1.038.pom": {
-      "sha256": "8235ae268e28855afa4338eeb08a609647ab790bd3cbba0456a19daa0fee4a83"
+    "com/cnuernber/charred/1.039/charred-1.039.pom": {
+      "sha256": "33922bb90792382a853da2e79e707390653e4b4673a3a25183f3de525a6dd0ab"
     },
     "com/cognitect/aws/api/0.8.824/api-0.8.824.jar": {
       "sha256": "4419ad593f5dd1852100aa4fb34afe1ff54b1f24251886666ba30db5cc4169ec"
@@ -322,11 +322,11 @@
     "commons-codec/commons-codec/1.21.0/commons-codec-1.21.0.pom": {
       "sha256": "b230416ba6f5bf9df8fcb6e7f4a6c26b8fb0fe85ce371d13d5846ed3768309b7"
     },
-    "commons-io/commons-io/2.20.0/commons-io-2.20.0.jar": {
-      "sha256": "df90bba0fe3cb586b7f164e78fe8f8f4da3f2dd5c27fa645f888100ccc25dd72"
+    "commons-io/commons-io/2.21.0/commons-io-2.21.0.jar": {
+      "sha256": "7d643a2afea8b058b762aa6fb90e5b256f6c729739f8b3784c3370ddc609e88d"
     },
-    "commons-io/commons-io/2.20.0/commons-io-2.20.0.pom": {
-      "sha256": "bdbdf81072c190ee9a8b181a5c58f5bd917a750fb13a256debbf53f5dbd33a2a"
+    "commons-io/commons-io/2.21.0/commons-io-2.21.0.pom": {
+      "sha256": "ae47795e721803ec8ff1deed74be28a811a02713bd5a3ab0ac67c2b58cb635ab"
     },
     "commons-logging/commons-logging/1.3.6/commons-logging-1.3.6.jar": {
       "sha256": "f8ead8943401081dea0aa824b5b1ba40a0e4ed297a572a0f02258150a0b62357"
@@ -352,11 +352,11 @@
     "dev/weavejester/hashp/0.5.1/hashp-0.5.1.pom": {
       "sha256": "76cb5f1b0f683a643ecf3f406713e938b7c516f5207c97b370a9d291cf617618"
     },
-    "djblue/portal/0.65.0/portal-0.65.0.jar": {
-      "sha256": "92cdd3f72489642d5235b2d8d0e3af5db12d39298360b9c752a507701da97f08"
+    "djblue/portal/0.66.0/portal-0.66.0.jar": {
+      "sha256": "1e7e860f91176094a88f4bc9db84cbefa64553d07e77b68937b97fa6f921850d"
     },
-    "djblue/portal/0.65.0/portal-0.65.0.pom": {
-      "sha256": "067a6fc860238bd09bae1e34f38d1b9e05c1a4706f1e53f22c8140fde56c4781"
+    "djblue/portal/0.66.0/portal-0.66.0.pom": {
+      "sha256": "d385ac85784dbaeffb0f49745f5c222546dac1058b672690ad66c1746c51aec8"
     },
     "eu/maveniverse/maven/mima/context/2.4.44/context-2.4.44.jar": {
       "sha256": "81f0dab4c5f0cf59a53faf8b864960b1629d7d7f174f0c26ed6319e2fec1984d"
@@ -574,9 +574,6 @@
     "org/apache/apache/25/apache-25.pom": {
       "sha256": "e68fc19a48cec582a6732fd0b10dbfe9feca25060963def89e547f8a3759d379"
     },
-    "org/apache/apache/34/apache-34.pom": {
-      "sha256": "3671ae9d4d062ae3bb985731c76088bb2f6f7d7254e2d304ee9f690b97651328"
-    },
     "org/apache/apache/35/apache-35.pom": {
       "sha256": "ea297dcd114136e8b8e8b630230d52a76c2fc69f6c5db25d672b1857000728b8"
     },
@@ -586,14 +583,14 @@
     "org/apache/apache/38/apache-38.pom": {
       "sha256": "9b0a5f28ddfb4b7500a37022bee8245efdd044fb9a3d79fb827550923eccc4b5"
     },
-    "org/apache/commons/commons-fileupload2-core/2.0.0-M4/commons-fileupload2-core-2.0.0-M4.jar": {
-      "sha256": "d285cd8cdde3d9466208b37c7750454b0b280ea773b19b050ae1e2ddb09e6991"
+    "org/apache/commons/commons-fileupload2-core/2.0.0-M5/commons-fileupload2-core-2.0.0-M5.jar": {
+      "sha256": "f129b10b022a8072b1672069a49b34699877645bb2bdfe0a5cef819f788771ff"
     },
-    "org/apache/commons/commons-fileupload2-core/2.0.0-M4/commons-fileupload2-core-2.0.0-M4.pom": {
-      "sha256": "9d5af8825271f2295105fb0da8106308ed2809ebecf5030879c1b67485ea8dcf"
+    "org/apache/commons/commons-fileupload2-core/2.0.0-M5/commons-fileupload2-core-2.0.0-M5.pom": {
+      "sha256": "00423c3abab91b732a99ba2ec4a7434461494b6d4cfd9e6df6400348247f0113"
     },
-    "org/apache/commons/commons-fileupload2/2.0.0-M4/commons-fileupload2-2.0.0-M4.pom": {
-      "sha256": "d4ebd5075295bef5eb50bec09d0ea237c5570db65de5d7d57c6328241c4da186"
+    "org/apache/commons/commons-fileupload2/2.0.0-M5/commons-fileupload2-2.0.0-M5.pom": {
+      "sha256": "466d407098daf8719db6d2591e11fec520f4201443b02d0c6e411ef26f90c074"
     },
     "org/apache/commons/commons-lang3/3.18.0/commons-lang3-3.18.0.jar": {
       "sha256": "4eeeae8d20c078abb64b015ec158add383ac581571cddc45c68f0c9ae0230720"
@@ -604,11 +601,11 @@
     "org/apache/commons/commons-parent/52/commons-parent-52.pom": {
       "sha256": "75dbe8f34e98e4c3ff42daae4a2f9eb4cbcd3b5f1047d54460ace906dbb4502e"
     },
-    "org/apache/commons/commons-parent/84/commons-parent-84.pom": {
-      "sha256": "9239fb97101db27070e4983d10d33a0e91cf676cad91bf53815422c3561ef9b1"
-    },
     "org/apache/commons/commons-parent/85/commons-parent-85.pom": {
       "sha256": "d189ff2c0027e96bb65d31e6f227ed2af966169b36af1e973dd5ba08926dc7b5"
+    },
+    "org/apache/commons/commons-parent/91/commons-parent-91.pom": {
+      "sha256": "d2f8b6fd4800b6aaf120f5a38226d5f9d5fc6db837af99e2f9b33067868b9872"
     },
     "org/apache/commons/commons-parent/96/commons-parent-96.pom": {
       "sha256": "2cd3289b44efa53052d9cdaf3f05544833a520a682f9c7ffd403a00bbb157f9a"
@@ -1102,9 +1099,6 @@
     "org/junit/junit-bom/5.10.2/junit-bom-5.10.2.pom": {
       "sha256": "169dd904a4b0f6520cffe658cc62292bfe9f3c14a989fa92120724cde43a9968"
     },
-    "org/junit/junit-bom/5.12.2/junit-bom-5.12.2.pom": {
-      "sha256": "cef80fec86454f6806bfb0df24669b5c6f32e2cb728539ea859f47dfdc9bbc17"
-    },
     "org/junit/junit-bom/5.13.1/junit-bom-5.13.1.pom": {
       "sha256": "fa68451ea830572ed43ffe51d75b6a05f7a5e665a602a51f49d6be02063a65f3"
     },
@@ -1135,11 +1129,11 @@
     "org/ow2/ow2/1.5.1/ow2-1.5.1.pom": {
       "sha256": "321ddbb7ee6fe4f53dea6b4cd6db74154d6bfa42391c1f763b361b9f485acf05"
     },
-    "org/ring-clojure/ring-core-protocols/1.15.3/ring-core-protocols-1.15.3.jar": {
-      "sha256": "95eb3510ae71042738a767926b29954865e012da88f13bbfae823bfbd77d02fc"
+    "org/ring-clojure/ring-core-protocols/1.15.5/ring-core-protocols-1.15.5.jar": {
+      "sha256": "28160864601c048d5177f01539db2a344c4b50a3dcf3e6310193cc7d3acc5714"
     },
-    "org/ring-clojure/ring-core-protocols/1.15.3/ring-core-protocols-1.15.3.pom": {
-      "sha256": "e404fd9429d3b3ef5428f5cf830f07958efd57a855a7c9ec6809b03f3c2f1b53"
+    "org/ring-clojure/ring-core-protocols/1.15.5/ring-core-protocols-1.15.5.pom": {
+      "sha256": "2548b74abcb6b14d6b93a4a6fb54916973b4daab539c9995bbff4d539f3ae748"
     },
     "org/ring-clojure/ring-websocket-middleware/0.2.1/ring-websocket-middleware-0.2.1.jar": {
       "sha256": "d9ddc1dfaf7104cb89afc8a682746bcc86c6fe8299f4382e955cc77fe403ff87"
@@ -1147,11 +1141,11 @@
     "org/ring-clojure/ring-websocket-middleware/0.2.1/ring-websocket-middleware-0.2.1.pom": {
       "sha256": "81e653d8d65297ddb194a7b55462fdbcbad604967d1037f1c7900d54df521ef3"
     },
-    "org/ring-clojure/ring-websocket-protocols/1.15.3/ring-websocket-protocols-1.15.3.jar": {
-      "sha256": "684e1b46039a445229e7e900d77f9627e40ae9651495b1373c7084555a1101e4"
+    "org/ring-clojure/ring-websocket-protocols/1.15.5/ring-websocket-protocols-1.15.5.jar": {
+      "sha256": "1c26918f332c02b07e8a3999ea399f258639db5804bb12807072461ac60f444d"
     },
-    "org/ring-clojure/ring-websocket-protocols/1.15.3/ring-websocket-protocols-1.15.3.pom": {
-      "sha256": "48af8b9fbc70ce00a033994585c911e48343dcf92620b67b262f624fa5039b98"
+    "org/ring-clojure/ring-websocket-protocols/1.15.5/ring-websocket-protocols-1.15.5.pom": {
+      "sha256": "8dce2c59b999e97d01197f6586a3633bbea03379cc113f15ed81f1428cc27b3e"
     },
     "org/slf4j/jcl-over-slf4j/1.7.36/jcl-over-slf4j-1.7.36.jar": {
       "sha256": "ab57ca8fd223772c17365d121f59e94ecbf0ae59d08c03a3cb5b81071c019195"
@@ -1228,11 +1222,11 @@
     "party/donut/error/0.0.18/error-0.0.18.pom": {
       "sha256": "fd31ebcfd583265d70cad47b2b3d8bf3848cf157bcb19aafc4078f15470413cb"
     },
-    "party/donut/system/1.0.258/system-1.0.258.jar": {
-      "sha256": "0f3545bd39d65c6a60dba5f88e511c0a68644020643e927b2649bde9d8e8c422"
+    "party/donut/system/1.0.259/system-1.0.259.jar": {
+      "sha256": "e271b4c67b6347e67ac2b4a6eda96ee8578f4ff5a3895e1e46bfac344b5b4ede"
     },
-    "party/donut/system/1.0.258/system-1.0.258.pom": {
-      "sha256": "193bd80f1804a6e3000ff5d68ff96e080be695fb3b136d722c612f3d5d071ba4"
+    "party/donut/system/1.0.259/system-1.0.259.pom": {
+      "sha256": "e4f6b8a9ee05d7ff8b14ae569ac3ba65d76190a337390f322804fc2f69bd184a"
     },
     "progrock/progrock/0.1.2/progrock-0.1.2.jar": {
       "sha256": "0259feb5b02476eb300b7d64e543eb54ce4ac3dcae5398310f1642768fd53f2a"
@@ -1252,20 +1246,17 @@
     "ring/ring-codec/1.3.0/ring-codec-1.3.0.pom": {
       "sha256": "ecd4ea6b36f2cc78e7de31a85084b9ae615d58b8a16fd1a3e06b954fd1d5c714"
     },
-    "ring/ring-core/1.15.1/ring-core-1.15.1.pom": {
-      "sha256": "90871a333fa21d18a639488761548ccbdc5763459332e48e355fcabe999d919c"
+    "ring/ring-core/1.15.5/ring-core-1.15.5.jar": {
+      "sha256": "9d4af463dc0fc02b248e567387b3bad526627a9e0954abacd67b83c427bbe168"
     },
-    "ring/ring-core/1.15.3/ring-core-1.15.3.jar": {
-      "sha256": "4d8d97098898e33e8bb78d3f0f28b0b1c8cede6d88ba3a4ec35ee58e974007bc"
+    "ring/ring-core/1.15.5/ring-core-1.15.5.pom": {
+      "sha256": "604f51e555ca6475ff68d62bb59f7b656ee874b3a206a8e38874c039e89091d8"
     },
-    "ring/ring-core/1.15.3/ring-core-1.15.3.pom": {
-      "sha256": "34f2909477378f4d22afa2c77941fc4579808a3cba959b06f1ebaf1ed31ad71d"
+    "ring/ring-defaults/0.7.1/ring-defaults-0.7.1.jar": {
+      "sha256": "71da4b93c157b2b83902a6e64ce354a6087fe298ab7ae82b98d59c4e5804cdad"
     },
-    "ring/ring-defaults/0.7.0/ring-defaults-0.7.0.jar": {
-      "sha256": "7587a553147ea7cd6f45eb282621be52723b749ffddb755a1272015ff81bcaa3"
-    },
-    "ring/ring-defaults/0.7.0/ring-defaults-0.7.0.pom": {
-      "sha256": "21792efd978ce61ae11376b6e7b7d9cf2db61073b8c4927ae74ef8ae70166e47"
+    "ring/ring-defaults/0.7.1/ring-defaults-0.7.1.pom": {
+      "sha256": "ebeb8cc1163ddac6c7c55529011998deb48ee40496591634298324cd5638a995"
     },
     "ring/ring-headers/0.4.0/ring-headers-0.4.0.jar": {
       "sha256": "777d50f4238a4609789ab290b0070d95de7fef650f37412e850733c177443499"
