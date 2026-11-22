@@ -153,6 +153,7 @@ in
       description = "NAD Receiver REST API Bridge";
       wantedBy = [ "multi-user.target" ];
       after = [ "network.target" ];
+      environment.JDK_JAVA_OPTIONS = "-Xmx256m -XX:+ExitOnOutOfMemoryError";
 
       serviceConfig = {
         Type = "simple";
@@ -162,6 +163,8 @@ in
         ConfigurationDirectory = "nad-api";
         Restart = "always";
         RestartSec = 2;
+        MemoryMax = "768M";
+        CPUQuota = "200%";
         # Hardening
         CapabilityBoundingSet = "";
         NoNewPrivileges = true;

@@ -77,6 +77,8 @@ makeTest {
     machine.wait_for_unit("nad-api.service")
     machine.wait_for_open_port(8002)
 
+    machine.succeed("journalctl -u nad-api.service | grep -q 'Picked up JDK_JAVA_OPTIONS: -Xmx256m -XX:+ExitOnOutOfMemoryError'")
+
     # Verify config file exists
     machine.succeed("test -f /etc/nad-api/config.edn")
     machine.succeed("grep -q 'test-nad' /etc/nad-api/config.edn")
