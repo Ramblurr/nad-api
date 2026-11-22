@@ -70,34 +70,72 @@
                                      (.getName (class throwable))))))
 
 (defn- remember-disconnection!
-  "Stores disconnected state for a mutable connection reference."
-  [conn-ref ^Throwable throwable]
-  (when (instance? clojure.lang.Atom conn-ref)
-    (reset! conn-ref (disconnected-conn @conn-ref throwable))))
+  "Closes `conn` and marks `conn-ref` disconnected with `throwable`.
+
+  Does nothing unless `conn-ref` is an atom.
+  Leaves the atom alone when it already holds a newer connection."
+  [conn-ref conn ^Throwable throwable]
+  (when (and conn (instance? clojure.lang.Atom conn-ref))
+    (telnet/disconnect conn)
+    (swap! conn-ref #(if (identical? (:socket %) (:socket conn))
+                       (disconnected-conn % throwable)
+                       %))))
 
 (defn- ensure-conn
-  "Returns an active connection, reconnecting mutable refs on demand."
+  "Returns an active connection, reconnecting mutable refs on demand.
+
+  Reconnects are serialized per device so concurrent requests share one
+  attempt: a request that waited while another attempt failed fails too,
+  instead of dialing again."
   [conn-ref]
-  (let [conn (deref-conn conn-ref)]
-    (if (or (not (instance? clojure.lang.Atom conn-ref))
-            (telnet/connected? conn))
-      conn
-      (try
-        (let [new-conn (-> (telnet/connect (:host conn)
-                                           (:port conn)
-                                           (:timeout-ms conn))
-                           (telnet/introspect))]
-          (reset! conn-ref new-conn)
-          new-conn)
-        (catch Exception e
-          (remember-disconnection! conn-ref e)
-          (throw e))))))
+  (if (instance? clojure.lang.Atom conn-ref)
+    (let [seen @conn-ref]
+      (locking conn-ref
+        (let [conn @conn-ref]
+          (cond
+            (telnet/connected? conn)
+            conn
+
+            (not (identical? seen conn))
+            (throw (java.io.IOException. (str "Device unavailable: " (:last-error conn))))
+
+            :else
+            (try
+              (reset! conn-ref (-> (telnet/connect (:host conn)
+                                                   (:port conn)
+                                                   (:timeout-ms conn))
+                                   (telnet/introspect)))
+              (catch Exception e
+                (reset! conn-ref (disconnected-conn conn e))
+                (throw e)))))))
+    conn-ref))
 
 (defn- error-message
   "Returns a readable message for exceptions."
   [^Throwable e]
   (or (.getMessage e)
       (.getName (class e))))
+
+(defn- device-response
+  "Calls `f` with an active connection and returns its Ring response.
+
+  An I/O failure closes the connection and becomes a 503 or 504 response.
+  Any other failure becomes a 503 response and leaves the connection open."
+  [conn-ref f]
+  (let [conn (volatile! nil)]
+    (try
+      (f (vreset! conn (ensure-conn conn-ref)))
+      (catch java.net.SocketTimeoutException e
+        (remember-disconnection! conn-ref @conn e)
+        (json-response 504 {:error   "timeout"
+                            :message "Device did not respond"}))
+      (catch java.io.IOException e
+        (remember-disconnection! conn-ref @conn e)
+        (json-response 503 {:error   "connection-error"
+                            :message (error-message e)}))
+      (catch Exception e
+        (json-response 503 {:error   "connection-error"
+                            :message (error-message e)})))))
 
 (defn- parse-request-body
   "Parses JSON request body, returns map with keyword keys."
@@ -114,20 +152,13 @@
   `conn-ref` can be a connection map or an atom containing one."
   [cmd conn-ref]
   (fn [_request]
-    (try
-      (let [conn     (ensure-conn conn-ref)
-            wire-cmd (commands/build-command cmd "?" nil)
-            response (telnet/send-command conn wire-cmd)
-            value    (commands/coerce-value cmd (telnet/parse-response response cmd))]
-        (json-response 200 {:command cmd :value value}))
-      (catch java.net.SocketTimeoutException e
-        (remember-disconnection! conn-ref e)
-        (json-response 504 {:error   "timeout"
-                            :message "Device did not respond"}))
-      (catch Exception e
-        (remember-disconnection! conn-ref e)
-        (json-response 503 {:error   "connection-error"
-                            :message (error-message e)})))))
+    (device-response
+     conn-ref
+     (fn [conn]
+       (let [wire-cmd (commands/build-command cmd "?" nil)
+             response (telnet/send-command conn wire-cmd)
+             value    (commands/coerce-value cmd (telnet/parse-response response cmd))]
+         (json-response 200 {:command cmd :value value}))))))
 
 (defn- modify-handler
   "Creates POST handler for a command.
@@ -155,31 +186,24 @@
                             :message "Operator '=' requires a 'value'"})
 
         :else
-        (try
-          (let [conn         (ensure-conn conn-ref)
-                wire-cmd     (commands/build-command cmd operator value)
-                response     (telnet/send-command conn wire-cmd)
-                result-value (telnet/parse-response response cmd)]
-            ;; If device echoed confirmation, use it; otherwise query
-            (if result-value
-              (json-response 200 {:command  cmd
-                                  :operator operator
-                                  :value    (commands/coerce-value cmd result-value)})
-              ;; No confirmation - query to get current value
-              (let [query-cmd   (commands/build-command cmd "?" nil)
-                    query-resp  (telnet/send-command conn query-cmd)
-                    query-value (telnet/parse-response query-resp cmd)]
-                (json-response 200 {:command  cmd
-                                    :operator operator
-                                    :value    (commands/coerce-value cmd query-value)}))))
-          (catch java.net.SocketTimeoutException e
-            (remember-disconnection! conn-ref e)
-            (json-response 504 {:error   "timeout"
-                                :message "Device did not respond"}))
-          (catch Exception e
-            (remember-disconnection! conn-ref e)
-            (json-response 503 {:error   "connection-error"
-                                :message (error-message e)})))))))
+        (device-response
+         conn-ref
+         (fn [conn]
+           (let [wire-cmd     (commands/build-command cmd operator value)
+                 response     (telnet/send-command conn wire-cmd)
+                 result-value (telnet/parse-response response cmd)]
+             ;; If device echoed confirmation, use it; otherwise query
+             (if result-value
+               (json-response 200 {:command  cmd
+                                   :operator operator
+                                   :value    (commands/coerce-value cmd result-value)})
+               ;; No confirmation - query to get current value
+               (let [query-cmd   (commands/build-command cmd "?" nil)
+                     query-resp  (telnet/send-command conn query-cmd)
+                     query-value (telnet/parse-response query-resp cmd)]
+                 (json-response 200 {:command  cmd
+                                     :operator operator
+                                     :value    (commands/coerce-value cmd query-value)}))))))))))
 
 (defn- device-discovery-handler
   "Creates GET handler for /api/{device} that returns device info and supported commands.
@@ -226,17 +250,18 @@
     (if-not (instance? clojure.lang.Atom conn-ref)
       (json-response 501 {:error   "not-implemented"
                           :message "Reconnect not available (connection not mutable)"})
-      (try
-        (let [new-conn (swap! conn-ref telnet/reconnect)]
-          (json-response 200 {:device device-name
-                              :status "reconnected"
-                              :host   (:host new-conn)
-                              :port   (:port new-conn)
-                              :model  (:model new-conn)}))
-        (catch Exception e
-          (remember-disconnection! conn-ref e)
-          (json-response 503 {:error   "reconnect-failed"
-                              :message (error-message e)}))))))
+      (locking conn-ref
+        (try
+          (let [new-conn (reset! conn-ref (telnet/reconnect @conn-ref))]
+            (json-response 200 {:device device-name
+                                :status "reconnected"
+                                :host   (:host new-conn)
+                                :port   (:port new-conn)
+                                :model  (:model new-conn)}))
+          (catch Exception e
+            (remember-disconnection! conn-ref @conn-ref e)
+            (json-response 503 {:error   "reconnect-failed"
+                                :message (error-message e)})))))))
 
 (defn make-device-routes
   "Generates Reitit route data for a single device's supported commands.

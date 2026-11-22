@@ -307,3 +307,58 @@
           (is (= "Main.Power=On" response)))
         (finally
           (sut/disconnect conn))))))
+
+(deftest introspect-peer-close-test
+  (testing "fails and closes the socket when the device hangs up after the model line"
+    (with-open [server (ServerSocket. 0)]
+      (future
+        (with-open [client (.accept server)]
+          (doto (.getOutputStream client)
+            (.write (.getBytes "\nMain.Model=T778\r"))
+            (.flush))
+          (.read (.getInputStream client) (byte-array 64))))
+      (let [conn   (sut/connect "localhost" (.getLocalPort server) 2000)
+            result (deref (future
+                            (try
+                              (sut/introspect conn)
+                              (catch java.io.EOFException e e)))
+                          5000
+                          ::hung)]
+        (is (instance? java.io.EOFException result))
+        (is (not (sut/connected? conn)))))))
+
+(deftest introspect-continuous-stream-test
+  (testing "gives up and closes the socket when the device never pauses"
+    (with-open [server (ServerSocket. 0)]
+      (future
+        (with-open [client (.accept server)]
+          (let [out (.getOutputStream client)]
+            (.write out (.getBytes "\nMain.Model=T778\r"))
+            (.flush out)
+            (.read (.getInputStream client))
+            (while true
+              (.write out (.getBytes "\nMain.Temp.PSU=35\r"))
+              (.flush out)
+              (Thread/sleep 50)))))
+      (let [conn   (sut/connect "localhost" (.getLocalPort server) 2000)
+            result (deref (future
+                            (try
+                              (sut/introspect conn)
+                              (catch Exception e e)))
+                          10000
+                          ::hung)]
+        (is (instance? java.io.IOException result))
+        (is (not (sut/connected? conn)))))))
+
+(deftest send-command-peer-close-test
+  (testing "fails and closes the socket when the device hangs up instead of replying"
+    (with-open [server (ServerSocket. 0)]
+      (future
+        (with-open [client (.accept server)]
+          (doto (.getOutputStream client)
+            (.write (.getBytes "\nMain.Model=T778\r"))
+            (.flush))
+          (.read (.getInputStream client) (byte-array 64))))
+      (let [conn (sut/connect "localhost" (.getLocalPort server) 2000)]
+        (is (thrown? java.io.EOFException (sut/send-command conn "Main.Volume+")))
+        (is (not (sut/connected? conn)))))))

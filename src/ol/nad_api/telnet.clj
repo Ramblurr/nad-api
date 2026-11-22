@@ -169,12 +169,16 @@
   [{:keys [socket]}]
   (sockets/close socket))
 
+(def ^:private max-read-ms
+  "Longest time one read may keep collecting data before giving up."
+  5000)
+
 (defn- read-response
   "Reads a single response from the connection.
 
   Reads until carriage return delimiter, strips line endings."
   [{:keys [socket timeout-ms]}]
-  (let [raw (sockets/read-until socket \return timeout-ms)]
+  (let [raw (sockets/read-until socket \return timeout-ms (+ (System/currentTimeMillis) max-read-ms))]
     (unwrap-response raw)))
 
 (defn connect
@@ -213,16 +217,15 @@
   unsolicited data and command responses.
 
   Uses a short inter-line timeout to detect end of data quickly.
+  Throws when the device keeps sending for longer than `max-read-ms`.
   Returns lines joined by newlines (no trailing newline)."
   [{:keys [socket]} read-timeout-ms]
-  (let [lines (java.util.ArrayList.)]
-    (try
-      (loop []
-        (let [response (sockets/read-until socket \return read-timeout-ms)]
-          (.add lines (unwrap-response response))
-          (recur)))
-      (catch java.net.SocketTimeoutException _
-        ;; Timeout means no more data - that's expected
+  (let [deadline (+ (System/currentTimeMillis) max-read-ms)]
+    (loop [lines []]
+      (if-let [response (try
+                          (sockets/read-until socket \return read-timeout-ms deadline)
+                          (catch java.net.SocketTimeoutException _ nil))]
+        (recur (conj lines (unwrap-response response)))
         (str/join "\n" lines)))))
 
 (defn introspect
@@ -300,7 +303,8 @@
 
   Access to the socket is serialized - concurrent callers will block until
   the previous command completes. This prevents interleaved commands from
-  multiple HTTP requests.
+  multiple HTTP requests. An I/O failure closes the socket before the
+  next caller gets it.
 
   ```clojure
   (send-command conn \"Main.Power?\")
@@ -309,6 +313,10 @@
   [{:keys [socket] :as conn} cmd]
   (validate-command! conn cmd)
   (locking socket
-    (sockets/write socket (wrap-command cmd))
-    (read-all-available conn default-read-timeout-ms)))
+    (try
+      (sockets/write socket (wrap-command cmd))
+      (read-all-available conn default-read-timeout-ms)
+      (catch java.io.IOException e
+        (sockets/close socket)
+        (throw e)))))
 

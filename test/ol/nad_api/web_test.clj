@@ -31,6 +31,7 @@
 
 (def ^:dynamic *mock-server* nil)
 (def ^:dynamic *mock-port* nil)
+(def ^:private mock-accepts (atom 0))
 
 (def mock-introspection-response
   (str "Main.Model=T778\r"
@@ -55,6 +56,7 @@
           (while (not (.isClosed server))
             (try
               (let [client (.accept server)]
+                (swap! mock-accepts inc)
                 (future
                   (try
                     (let [in  (.getInputStream client)
@@ -102,6 +104,7 @@
               (catch Exception _)))
           (catch Exception _)))
       (deref server-ready 1000 false)
+      (reset! mock-accepts 0)
       (binding [*mock-server* server
                 *mock-port*   port]
         (f))
@@ -346,3 +349,78 @@
         (is (= "On" (:value body))))
       (is (= "T778" (:model @conn-ref)))
       (is (contains? (:supported-commands @conn-ref) "Main.Power")))))
+
+(deftest handler-serializes-concurrent-reconnects-test
+  (testing "concurrent requests on a disconnected device open a single connection"
+    (let [conn-ref  (atom {:host       "localhost"
+                           :port       *mock-port*
+                           :timeout-ms 2000})
+          h         (sut/handler {"nad-t778" conn-ref})
+          responses (->> (range 20)
+                         (mapv (fn [_]
+                                 (future (h {:uri "/api/nad-t778/Main.Power" :request-method :get}))))
+                         (mapv deref))]
+      (try
+        (is (every? #(= 200 (:status %)) responses))
+        (is (= 1 @mock-accepts))
+        (finally
+          (telnet/disconnect @conn-ref))))))
+
+(deftest handler-keeps-replacement-connection-test
+  (testing "a request failing on a stale connection leaves the replacement open"
+    (with-open [server (ServerSocket. 0)]
+      (let [request-sent (promise)
+            hang-up      (promise)]
+        (future
+          (with-open [client (.accept server)]
+            (doto (.getOutputStream client)
+              (.write (.getBytes "\nMain.Model=T778\r"))
+              (.flush))
+            (.read (.getInputStream client) (byte-array 64))
+            (deliver request-sent true)
+            @hang-up))
+        (let [conn-ref    (atom (telnet/connect "localhost" (.getLocalPort server) 2000))
+              h           (sut/handler {"nad-t778" conn-ref})
+              response    (future (h {:uri "/api/nad-t778/Main.Power" :request-method :get}))
+              _           (deref request-sent 2000 nil)
+              replacement (telnet/connect "localhost" *mock-port* 2000)]
+          (reset! conn-ref replacement)
+          (deliver hang-up true)
+          (try
+            (is (= 503 (:status (deref response 5000 nil))))
+            (is (identical? replacement @conn-ref))
+            (is (telnet/connected? replacement))
+            (finally
+              (telnet/disconnect replacement))))))))
+
+(deftest handler-shares-failed-reconnect-test
+  (testing "requests that waited on a failed reconnect fail without dialing again"
+    (with-open [server (ServerSocket. 0)]
+      (let [accepts (atom 0)]
+        (future
+          (while true
+            (.accept server)
+            (swap! accepts inc)))
+        (let [conn-ref  (atom {:host       "localhost"
+                               :port       (.getLocalPort server)
+                               :timeout-ms 300})
+              h         (sut/handler {"nad-t778" conn-ref})
+              responses (->> (range 8)
+                             (mapv (fn [_]
+                                     (future (h {:uri "/api/nad-t778/Main.Power" :request-method :get}))))
+                             (mapv #(deref % 5000 nil)))]
+          (is (every? #(#{503 504} (:status %)) responses))
+          (is (= 1 @accepts)))))))
+
+(deftest handler-unsupported-command-keeps-connection-test
+  (testing "a command the device does not support leaves the connection open"
+    (let [conn-ref (atom {:host       "localhost"
+                          :port       *mock-port*
+                          :timeout-ms 2000})
+          h        (sut/handler {"nad-t778" conn-ref})]
+      (try
+        (is (= 200 (:status (h {:uri "/api/nad-t778/Main.Power" :request-method :get}))))
+        (is (= 503 (:status (h {:uri "/api/nad-t778/Zone2.Mute" :request-method :get}))))
+        (is (telnet/connected? @conn-ref))
+        (finally
+          (telnet/disconnect @conn-ref))))))

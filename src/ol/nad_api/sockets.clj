@@ -4,9 +4,11 @@
    [java.io
     BufferedReader
     BufferedWriter
+    EOFException
+    IOException
     InputStreamReader
     OutputStreamWriter]
-   [java.net InetSocketAddress Socket]))
+   [java.net InetSocketAddress Socket SocketTimeoutException]))
 
 (set! *warn-on-reflection* true)
 
@@ -55,9 +57,9 @@
   ;=> nil
   ```"
   [^Socket socket]
-  (clear-reader! socket)
   (when (and socket (not (.isClosed socket)))
-    (.close socket)))
+    (.close socket))
+  (clear-reader! socket))
 
 (defn write
   "Writes `s` to the socket.
@@ -75,21 +77,31 @@
   "Reads from socket until `delimiter` char is encountered.
 
   Returns the string read (excluding the delimiter).
-  Throws on timeout or read error.
+  Throws `EOFException` when the peer has closed the connection,
+  `SocketTimeoutException` when the peer is silent for `timeout-ms`, and
+  `IOException` when the epoch-millis `deadline-ms` passes first.
 
   ```clojure
-  (read-until socket \\return 2000)
+  (read-until socket \\return 2000 (+ (System/currentTimeMillis) 5000))
   ;=> \"Main.Power=On\"
   ```"
-  [^Socket socket delimiter ^long timeout-ms]
-  (.setSoTimeout socket (int timeout-ms))
+  [^Socket socket delimiter ^long timeout-ms ^long deadline-ms]
   (let [^BufferedReader in (get-reader socket)
         sb                 (StringBuilder.)
         delim-int          (int delimiter)]
     (loop []
-      (let [ch (.read in)]
+      (let [remaining (- deadline-ms (System/currentTimeMillis))]
+        (when-not (pos? remaining)
+          (throw (IOException. "Read deadline passed before the line ended")))
+        (.setSoTimeout socket (int (max 1 (min timeout-ms remaining)))))
+      (let [ch (try
+                 (.read in)
+                 (catch SocketTimeoutException e
+                   (if (< (System/currentTimeMillis) deadline-ms)
+                     (throw e)
+                     (throw (IOException. "Read deadline passed before the line ended")))))]
         (cond
-          (= ch -1) (str sb)
+          (= ch -1) (throw (EOFException. "Connection closed by peer"))
           (= ch delim-int) (str sb)
           :else (do
                   (.append sb (char ch))
