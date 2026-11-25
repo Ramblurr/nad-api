@@ -46,7 +46,6 @@
     "devenv": {
       "inputs": {
         "devshell": "devshell",
-        "flake-schemas": "flake-schemas",
         "flakelight": "flakelight",
         "home-manager": "home-manager",
         "nixpkgs": [
@@ -55,11 +54,11 @@
         "treefmt-nix": "treefmt-nix"
       },
       "locked": {
-        "lastModified": 1794749940,
-        "narHash": "sha256-87+8Sj6n7J2y2KJWFNcfCZCD0AglfjWlFOI8BfKq1bA=",
+        "lastModified": 1795592186,
+        "narHash": "sha256-EwAP94TGJDTrbTNtvJK82u4hp8rYfQE3oiK5Ru6o1ZM=",
         "owner": "ramblurr",
         "repo": "nix-devenv",
-        "rev": "49dc8d68e1ab54cc8c48ebd68b05988aff2cee87",
+        "rev": "e78464b4f6b2e5ecdfdccebd2ed6bd90abec7a6a",
         "type": "github"
       },
       "original": {
@@ -107,20 +106,6 @@
         "owner": "numtide",
         "repo": "devshell",
         "type": "github"
-      }
-    },
-    "flake-schemas": {
-      "locked": {
-        "lastModified": 1770913512,
-        "narHash": "sha256-jRC1qRoRCrMjDalVfUMHFlKSkkA2q0RZWTDW0LsquoA=",
-        "rev": "3c464b0e09cb44c6e073c41dd1d834980c3e0b24",
-        "revCount": 111,
-        "type": "tarball",
-        "url": "https://api.flakehub.com/f/pinned/DeterminateSystems/flake-schemas/0.2.1/019c8ce4-cd63-7c3c-a4cf-d1e0788fdcd9/source.tar.gz"
-      },
-      "original": {
-        "type": "tarball",
-        "url": "https://flakehub.com/f/DeterminateSystems/flake-schemas/0.2.0"
       }
     },
     "flake-utils": {
@@ -194,16 +179,18 @@
     },
     "nixpkgs_2": {
       "locked": {
-        "lastModified": 1795234589,
-        "narHash": "sha256-f/VVvxf5RsQgWVhUtefoca5ktVg0DA2bnkMOcmSnozo=",
-        "rev": "2786a2a72088ecf32aea5b3ec52099e6a7cff78f",
-        "revCount": 1125864,
-        "type": "tarball",
-        "url": "https://api.flakehub.com/f/pinned/NixOS/nixpkgs/0.1.1125864%2Brev-2786a2a72088ecf32aea5b3ec52099e6a7cff78f/01a1feb0-3908-7972-a394-eb0b007657b1/source.tar.gz"
+        "lastModified": 1795358412,
+        "narHash": "sha256-/DhVJDgVfJt03NPteRs5TEcYc/uJBh5Zio0T23bQ16Y=",
+        "owner": "ramblurr",
+        "repo": "nixpkgs",
+        "rev": "b7f9f253b85074e7dbc19e642598cb895960fc00",
+        "type": "github"
       },
       "original": {
-        "type": "tarball",
-        "url": "https://flakehub.com/f/NixOS/nixpkgs/0.1"
+        "owner": "ramblurr",
+        "ref": "channel/personal-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
       }
     },
     "root": {
